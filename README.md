@@ -16,3 +16,20 @@ This repository hosts the data processing and analysis of the fish reaction to s
 │
 └── README.md
 ```
+
+## How to start
+
+1. Open `.Rproj` in Rstudio
+2. Install package `renv`
+
+   ```R
+   install.packages("renv")
+   ```
+
+3. Install all required packages locally into new environment
+
+   ```R
+   renv::restore()
+   ```
+
+4. Run `main.R` script
