@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# data products are derived from raw data
+data/products/*
+!data/products/README.md
+
+# outputs are produced by scripts
+outputs/*
+!outputs/README.md
