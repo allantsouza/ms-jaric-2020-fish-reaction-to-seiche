@@ -1,0 +1,8 @@
+RENV_CONFIG_SYNCHRONIZED_CHECK = TRUE
+
+# database credentials - keep secret
+dbname = "dbname"
+dbhost = "255.255.255.255"
+dbuser = "dbuser"
+dbpassword = "dbpassword"
+

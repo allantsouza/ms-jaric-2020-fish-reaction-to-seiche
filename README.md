@@ -32,4 +32,6 @@ This repository hosts the data processing and analysis of the fish reaction to s
    renv::restore()
    ```
 
-4. Run `main.R` script
+4. Copy file `.Renviron_template` into `.Renviron` file and update your database credentials there. The file is git ignored so the credentials should not be accidentaly pushed to public repo.
+
+5. Run `main.R` script
