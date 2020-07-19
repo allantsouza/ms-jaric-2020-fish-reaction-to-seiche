@@ -30,6 +30,15 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
   frame_new[, therm_split := rleid(therm_diff_bool)]
   #take only valid steps
   th_steps <- frame_new[therm_diff_bool == T]
+  if(nrow(th_steps) == 0){
+    th_steps.agg <- th_steps[, .(step_order = 1,
+                                 depth_start = as.numeric(NA),
+                                 depth_end = as.numeric(NA),
+                                 temperature_start = as.numeric(NA),
+                                 temperature_end = as.numeric(NA),
+                                 depth_crit = as.numeric(NA),
+                                 temperature_crit = as.numeric(NA))]
+  }else{
   #assign new sequence of steps 1, 2, 3...
   th_steps[, step_order := rleid(therm_split)]
   th_steps[, step_order := abs(step_order-max(step_order))+1]
@@ -41,6 +50,7 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
                                depth_crit = depth[which(temp_diff == min(temp_diff))[1]],
                                temperature_crit = temperature[which(temp_diff == min(temp_diff))[1]]),
                            by = step_order]
+  }
   return(th_steps.agg)
 }
 
