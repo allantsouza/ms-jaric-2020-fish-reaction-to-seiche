@@ -19,19 +19,19 @@ This repository hosts the data processing and analysis of the fish reaction to s
 
 ## How to start
 
+
+1. Copy file `.Renviron_template` into `.Renviron` file and update your database credentials there. The file is git ignored so the credentials should not be accidentaly pushed to public repo.
 1. Open `.Rproj` in Rstudio
-2. Install package `renv`
+1. Install package `renv`
 
    ```R
    install.packages("renv")
    ```
 
-3. Install all required packages locally into new environment
+1. Install all required packages locally into new environment
 
    ```R
    renv::restore()
    ```
 
-4. Copy file `.Renviron_template` into `.Renviron` file and update your database credentials there. The file is git ignored so the credentials should not be accidentaly pushed to public repo.
-
-5. Run `main.R` script
+1. Run `main.R` script
