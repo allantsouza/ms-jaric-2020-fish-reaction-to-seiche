@@ -13,11 +13,6 @@ hobo_data[, rho := a5 * (1 - ((((a1 + temperature)^2) * (a2 + temperature))/(a3*
 setkey(hobo_data, location, interval, depth)
 hobo_data[, out := .N < 13 | mean(temperature[2:4])- mean(tail(temperature, 2)) < 2, by =.(location, interval)]
 hobo_data_therm <- hobo_data[out == F]
-#computation will run in parallel - split data into chunks - each chunk one week
-hobo_data_therm[, week := week(interval)]
-hobo_data_therm_list <- split(hobo_data_therm, by = "week")
-
-
 
 # compute thermocline -------------------------------------------------------------------------------------
 thermocline <- hobo_data_therm[, compute_thermocline(depth = depth,
@@ -70,30 +65,17 @@ ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") ],
   geom_point(shape = ".")
 
 roll_cols <- c("tcenter", "tstart", "tend", "tcrit")
-thermocline_long <- melt(thermocline,
+thermocline_full <- melt(thermocline,
                          id.vars = c("lake", "location", "interval", "step_order", "slope"),
                          variable.name = "therm_part",
                          value.name = "temperature_smooth",
                          measure.vars = roll_cols)
 
-#TODO: overview of gaps in seconds
-thermocline_long[step_order == 1,
-                 .(max_gap_secs = ifelse(all(is.na(diff(as.numeric(interval)))), NA, max(diff(as.numeric(interval)), na.rm = T))),
-                 by = .(lake, location, step_order, slope, therm_part)]
+#TODO: overview of gaps in seconds - should be 0! or interpolate otherwise to have full dataset
+thermocline_full[step_order == 1,
+                 .(interval, time_difference = c(0, diff(as.numeric(interval)))),
+                 by = .(lake, location, step_order, slope, therm_part)][time_difference > 300]
 
-# since there might be still some 5m intervals without value, interpolate linearly between them
-# mark timestamps where there is no record what so ever
-thermocline_long[, valid_for_interpolation := length(temperature_smooth[!is.na(temperature_smooth)]) > 1,
-                 by = .(lake, location, step_order, slope, therm_part)]
-
-thermocline_full <- thermocline_long[valid_for_interpolation == T,
-                                     .(interval = unique(thermocline$interval),
-                                       temperature_smooth = approx(x = interval[!is.na(temperature_smooth)],
-                                                                    y = temperature_smooth[!is.na(temperature_smooth)],
-                                                                    xout = unique(thermocline$interval),
-                                                                    method = "linear",
-                                                                    rule = 1)$y),
-                                     by = .(lake, location, step_order, slope, therm_part)]
 
 # TODO: this is very important step! Getting one temperature for the whole lake!
 # calculating means of the two locations for each time
@@ -105,7 +87,6 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
                      y = temperature_smooth,
                      col = therm_part,
                      linetype  = location))+
-  geom_line(shape = ".") +
   facet_wrap(~ slope, ncol = 1)
 
 
@@ -119,15 +100,11 @@ temperatures_monotonic[, ':=' (interval = ts)]
 setkey(thermocline_full, location, interval, temperature)
 setkey(temperatures_monotonic, location, interval, temperature)
 thermocline_temperatures_rolled <- temperatures_monotonic[thermocline_full,, on = c("location", "interval", "temperature"), roll = "nearest"]
-# TODO: remove joins futher that 10 days - are there any?
-thermocline_temperatures_rolled <- thermocline_temperatures_rolled[abs(as.numeric(ts) - as.numeric(interval)) < 86400*10 ]
-
-# TODO: in case of more depths with same temperature, take the deepest depth - are there any?
+#remove joins futher that 15 minutes
+thermocline_temperatures_rolled <- thermocline_temperatures_rolled[abs(as.numeric(ts) - as.numeric(interval)) < 60*15 ]
 
 #Thermocline dynamics - PLOT 
-thermocline_temperatures_rolled_sub[, month := month(interval)]
-thermocline_temperatures_rolled_sub[!is.na(temperature) & step_order == 1 & therm_part == "tcrit"]
-ggplot(data = thermocline_temperatures_rolled_sub[!is.na(temperature) & step_order == 1 & therm_part == "tcrit"],
+ggplot(data = thermocline_temperatures_rolled[!is.na(temperature) & step_order == 1 ],
        mapping = aes(x = interval,
                      y = depth,
                      group = location)) +
