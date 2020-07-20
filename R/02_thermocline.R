@@ -105,21 +105,17 @@ thermocline_temperatures_rolled <- thermocline_temperatures_rolled[abs(as.numeri
 ggplot(data = thermocline_temperatures_rolled[!is.na(temperature) & step_order == 1 ],
        mapping = aes(x = interval,
                      y = depth,
-                     group = location)) +
+                     col = therm_part)) +
   geom_line() +
-  facet_wrap(~ month, scales = "free") +
-  ylim(c(0, 10))
-
-#Check errors - TODO:
-aa <-  thermocline_temperatures_rolled_sub[!is.na(temperature) & slope == 1 & step_order == 1 & location %in% c("East", "West") & therm_part == "tstart"]
-aa[month == 6 & depth < 2]
-bb <- temperatures[location == "West" & ts == "2015-06-25 04:10:00"]
-plot(bb$depth, bb$temperature)
-temperatures[temperature == 18.2360]
-ggplot(bb[location == "West" & ts == "2015-06-25 04:10:00"], aes(x = depth, y = temperature))+
-  geom_point() +
-  geom_hline(data = data.table(itp = c(18.2360)), aes(yintercept = itp)) +
-  xlim(c(0, 15))
+  facet_wrap(~ location, ncol = 1) +
+  theme_minimal() + 
+  scale_y_reverse() +
+  xlab("Date") + 
+  ylab("Depth") +
+  scale_color_manual(values = RColorBrewer::brewer.pal(n = 4, name = "Spectral"),
+                     breaks = c("tstart", "tcrit", "tcenter", "tend"),
+                     labels = c("start", "crit", "center", "end")) +
+  labs(col = "Thermocline part")
 
 #extract columns of interest
 thermocline_location <- thermocline_temperatures_rolled[step_order == 1, .(lake,
@@ -136,48 +132,56 @@ thermocline_location <- thermocline_temperatures_rolled[step_order == 1, .(lake,
 # calculation of mean thermocline temperature for every single day (mean from both lines, calculated as diffrence between up_depth and down_depth)
 # Get mean depth of thermocline in the whole lake
 setkey(thermocline_location, location, interval)
-#get mean depth of thremocline in each 5min interval
-therm_lake <- thermocline_location[,.(lake_therm_depth = mean(depth)), by = .(lake, interval,step_order, slope, therm_part)]
+# Get mean depth of thremocline in each 5min interval
+therm_lake <- thermocline_location[,.(lake_therm_depth = mean(depth)), by = .(lake, interval, step_order, slope, therm_part)]
 # smooth mean depth by therm_bal_ws days moving window
 setkey(therm_lake,  interval)
 therm_lake[, balanced_therm_depth := roll_time_window(span = PAR_THERMOCLINE_BALACE, FUN = mean, x = lake_therm_depth, times = interval),
            by = .(lake, step_order, slope, therm_part)]
 therm_lake[, "lake_therm_depth" := NULL]
 
-#therm mean now contains depth of thermocline in balanced state without wind
-#compute thermocline thickness in each 5 minute interval
-thermocline_location_wide <- dcast(data = thermocline_location, lake + location + interval + step_order ~ therm_part, value.var = "depth")
+ggplot(therm_lake[step_order == 1], aes(x = interval, y = lake_therm_depth , col = therm_part))+
+  geom_point(shape = ".") +
+  geom_line(aes(y = balanced_therm_depth)) + 
+  theme_minimal() + 
+  xlab("Date") +
+  ylab("Depth") + 
+  scale_y_reverse() +
+  scale_color_manual(values = RColorBrewer::brewer.pal(n = 4, name = "Spectral"),
+                     breaks = c("start", "crit", "center", "end"),
+                     labels = c("start", "crit", "center", "end"))
+
+
+# Get deviation from balanced depth
+th_deviation <- merge(thermocline_location, therm_lake[therm_part == "center", .(lake, interval, slope, step_order, balanced_therm_depth)],
+               by = c("lake", "interval",  "step_order", "slope"))
+th_deviation[, deviation := balanced_therm_depth - depth]
+
+
+# Compute thermocline thickness
+thermocline_location_wide <- dcast(data = thermocline_location, lake + location + slope + interval + step_order ~ therm_part, value.var = "depth")
 thermocline_location_wide[, thickness := end - start]
 
-#merge data from locations to data from whole lake lake  - get deviation in locations of logger lines
-th_mt <- merge(thermocline_location, therm_lake[therm_part == "center"],
-               by = c("lake", "interval",  "step_order", "slope", "therm_part"))
+thermocline_data <- merge(th_deviation, thermocline_location_wide[, .(lake, interval, location, step_order, slope, thickness)],
+                          by = c("lake", "interval", "location", "step_order", "slope"))
 
-th_mt[, deviation := balanced_therm_depth - depth]
-
-th_m <- merge(th_mt, thermocline_location_wide, by = c("lake", "interval", "location", "step_order"))
-th_m[, Month := month(interval)]
+write_csv(x = thermocline_data, path = here("data", "products", "thermocline_data.csv"))
 
 # Overview
-ggplot(th_m[abs(deviation) > 1], aes(x = deviation, y = thickness, col = location)) +
+ggplot(thermocline_data[abs(deviation) > 0.7], aes(x = deviation, y = thickness, col = location)) +
   geom_point() +
-  facet_wrap(~Month) + 
-  geom_smooth(se = F, method = "lm")
+  geom_smooth(se = F, method = "lm") +
+  theme_minimal()
 
-
-ggplot(th_m[therm_part == "center"], aes(x = balanced_therm_depth, y = depth, col = location)) +
+ggplot(thermocline_data[therm_part == "center"], aes(x = balanced_therm_depth, y = depth, col = location)) +
   geom_point() +
-  facet_wrap(~location)
+  facet_wrap(~location) +
+  theme_minimal()
 
-ggplot(th_m[therm_part == "center"], aes(x = interval, y = thickness, col = location)) + 
+ggplot(thermocline_data[therm_part == "center"], aes(x = interval, y = thickness, col = location)) + 
   geom_line() +
-  facet_wrap(~Month, scales = "free", ncol = 1)
+  theme_minimal()
 
-ggplot(th_m[therm_part == "center" ], aes(x = interval, y = deviation, col = location)) + 
+ggplot(thermocline_data[therm_part == "center" ], aes(x = interval, y = deviation, col = location)) + 
   geom_line() +
-  facet_wrap(~Month, scales = "free", ncol = 1)
-
-therm_temp <- merge(thermocline_wide, th_m, by = c("location", "interval"))
-
-ggplot(th_m[], aes(x = interval, y = balanced_therm_depth, col = therm_part))+
-  geom_line()
+  theme_minimal()
