@@ -22,10 +22,9 @@ thermocline <- hobo_data_therm[, compute_thermocline(depth = depth,
                                by = .(interval, lake, location)]
 thermocline$slope <- PAR_THERMOCLINE_SLOPE
 
-# TODO: export this dataset as thermocline_5min
+write_csv(thermocline, path = here("data","products", "thermocline_slope.csv"))
 
 # Get seasonal thermocline --------------------------------------------------------------------------------
-
 # calculation of mean thermocline temperature for every single day (mean from both lines, calculated as diffrence between up_depth and down_depth)
 setkey(thermocline, location, step_order, slope, interval)
 window_size <- 14*86400
