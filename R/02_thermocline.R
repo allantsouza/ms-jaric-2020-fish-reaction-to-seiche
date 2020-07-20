@@ -5,8 +5,8 @@
 a1 <- -3.983035
 a2 <- 301.797
 a3 <- 522528.9
-a4 <-69.34881
-a5 <-999.974950
+a4 <- 69.34881
+a5 <- 999.974950
 hobo_data[, rho := a5 * (1 - ((((a1 + temperature)^2) * (a2 + temperature))/(a3*(temperature+a4))))] #http://metgen.pagesperso-orange.fr/metrologieen19.htm
 
 #remove intervals were there is no stratification (difference in temperature on surface and bottom < 2) or there is not enough logs (<13)
@@ -91,10 +91,8 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
 
 
 ## Get depth for thermocline ####
-# Previous code computed temperature of thermocline for each 5min interval
+# Previous code computed lake-wide temperature of thermocline for each 5min interval
 # Now get depth of occurence of that temperature
-
-#rolljoin (creation of "RolljoinedTable" datatable) ####
 thermocline_full[, ':=' (temperature = temperature_lake_mean)]
 temperatures_monotonic[, ':=' (interval = ts)]
 setkey(thermocline_full, location, interval, temperature)
@@ -124,7 +122,7 @@ ggplot(bb[location == "West" & ts == "2015-06-25 04:10:00"], aes(x = depth, y = 
   xlim(c(0, 15))
 
 #extract columns of interest
-thermocline_location <- thermocline_temperatures_rolled_sub[step_order == 1, .(lake,
+thermocline_location <- thermocline_temperatures_rolled[step_order == 1, .(lake,
                                                              location,
                                                              interval,
                                                              depth,
@@ -134,28 +132,16 @@ thermocline_location <- thermocline_temperatures_rolled_sub[step_order == 1, .(l
                                                              therm_part = sub(therm_part, pattern = "^t(.*)$", replacement = "\\1"))]
 
 
-# TODO: write to CSV as data product as thermocline
-
-
-
-
 # Calculate mean seasonal thermocline for whole lake
 # calculation of mean thermocline temperature for every single day (mean from both lines, calculated as diffrence between up_depth and down_depth)
-
-ggplot(thermocline_location[step_order == 1], aes(x = interval, y = depth , col = therm_part))+
-  geom_point(shape = ".") + 
-  facet_wrap(~location, ncol = 1)
-
 # Get mean depth of thermocline in the whole lake
 setkey(thermocline_location, location, interval)
 #get mean depth of thremocline in each 5min interval
 therm_lake <- thermocline_location[,.(lake_therm_depth = mean(depth)), by = .(lake, interval,step_order, slope, therm_part)]
 # smooth mean depth by therm_bal_ws days moving window
 setkey(therm_lake,  interval)
-
 therm_lake[, balanced_therm_depth := roll_time_window(span = PAR_THERMOCLINE_BALACE, FUN = mean, x = lake_therm_depth, times = interval),
            by = .(lake, step_order, slope, therm_part)]
-
 therm_lake[, "lake_therm_depth" := NULL]
 
 #therm mean now contains depth of thermocline in balanced state without wind
