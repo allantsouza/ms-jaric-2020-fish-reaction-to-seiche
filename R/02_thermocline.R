@@ -109,16 +109,6 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
   facet_wrap(~ slope, ncol = 1)
 
 
-#TODO:
-#Since there are some time frames in which the temperature increases over depth for some steps ( location == "West" & ts == "2015-06-23 02:35:00")
-#remove those steps and interpolate linearly created gaps
-setkey(temperatures, location, ts, depth)
-temperatures[, cum.min.temp := cummin(temperature), by = .(location, ts)]  
-temperatures[cum.min.temp < temperature, temperature := cum.min.temp]
-#since you are interested in last occurence of that temperature, you can exclude those above
-temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location, ts, temperature)]
-
-
 ## Get depth for thermocline ####
 # Previous code computed temperature of thermocline for each 5min interval
 # Now get depth of occurence of that temperature

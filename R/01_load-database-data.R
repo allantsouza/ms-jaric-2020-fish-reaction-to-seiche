@@ -65,7 +65,16 @@ sql_query_temperatures <- paste0(
   hte_timestamp_utc BETWEEN  '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "';") 
 
 temperatures <- data.table(dbGetQuery(con, sql_query_temperatures, stringsAsFactors = F))
-
+tz(temperatures$ts) <- "UTC"
+#Since there are some time frames in which the temperature increases over depth for some steps ( location == "West" & ts == "2015-06-23 02:35:00")
+setkey(temperatures, location, ts, depth)
+temperatures[, non_monotonic_decrease := any(diff(temperature) > 0), by = .(location, ts)]
+temperatures[non_monotonic_decrease == T] # TODO:
+#remove those steps and interpolate linearly created gaps
+temperatures[, cum.min.temp := cummin(temperature), by = .(location, ts)]  
+temperatures[cum.min.temp < temperature, temperature := cum.min.temp]
+#since you are interested in last occurence of that temperature, you can exclude those above
+temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location, ts, temperature)]
 
 # Spatial objects -----------------------------------------------------------
 
