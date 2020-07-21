@@ -50,6 +50,8 @@ hobo_data$interval <- lubridate::round_date(hobo_data$ts, "5 minutes")
 setkey(hobo_data, location, depth)
 hobo_data[, order := 1:.N, by =.(location, as.numeric(interval))]
 
+write_csv(x = hobo_data, path = here("data", "raw", "hobo_data.csv"))
+
 
 # Interpolated temperatures
 # load interpolated temperatures from the desired range of Dates
@@ -75,6 +77,9 @@ temperatures[, cum.min.temp := cummin(temperature), by = .(location, ts)]
 temperatures[cum.min.temp < temperature, temperature := cum.min.temp]
 #since you are interested in last occurence of that temperature, you can exclude those above
 temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location, ts, temperature)]
+
+write_csv(x = wind_data, path = here("data", "raw", "temperature_data.csv"))
+
 
 # Spatial objects -----------------------------------------------------------
 
@@ -104,3 +109,5 @@ wind_data <- rename(wind_data,
        lake = ms_lake, 
        ts = md_timestamp_utc,
        dataset_id = mds_dataset_id)
+
+write_csv(x = wind_data, path = here("data", "raw", "wind_data.csv"))
