@@ -85,8 +85,11 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
        mapping = aes(x = interval,
                      y = temperature_smooth,
                      col = therm_part,
-                     linetype  = location))+
-  facet_wrap(~ slope, ncol = 1)
+                     linetype  = location)) +
+  geom_line() +
+  theme_minimal() +
+  xlab("Date") +
+  ylab("Temperature (moving median)")
 
 
 ## Get depth for thermocline ####
@@ -139,9 +142,9 @@ therm_lake[, balanced_therm_depth := roll_time_window(span = PAR_THERMOCLINE_BAL
            by = .(lake, step_order, slope, therm_part)]
 therm_lake[, "lake_therm_depth" := NULL]
 
-ggplot(therm_lake[step_order == 1], aes(x = interval, y = lake_therm_depth , col = therm_part))+
+ggplot(therm_lake[step_order == 1], aes(x = interval, y = balanced_therm_depth , col = therm_part))+
   geom_point(shape = ".") +
-  geom_line(aes(y = balanced_therm_depth)) + 
+  geom_line() + 
   theme_minimal() + 
   xlab("Date") +
   ylab("Depth") + 
@@ -184,3 +187,4 @@ ggplot(thermocline_data[therm_part == "center"], aes(x = interval, y = thickness
 ggplot(thermocline_data[therm_part == "center" ], aes(x = interval, y = deviation, col = location)) + 
   geom_line() +
   theme_minimal()
+
