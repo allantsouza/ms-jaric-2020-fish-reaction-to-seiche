@@ -17,13 +17,9 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
     temperature <- temperature[order(depth)]
   }
   #create sequence of new depths
-  depths_new <- seq(floor(min(depth)), ceiling(max(depth)), depth_res)
-  #smooth the temperature profile
-  frame_spline <- splinefun(x = depth, y = temperature, method = "monoH.FC", ties = mean)
-  frame_new <- data.table(depth =  depths_new, temperature = frame_spline(depths_new))
+  frame_new <- as.data.table(smooth_temperature_profile(depth, temperature))
   #compute derivations in each step (decrease of temperature per meter)
-  frame_new[, temp_diff := c(diff(temperature)/depth_res, 0)]
-  frame_new[, therm_diff_bool := -diff_threshold > temp_diff]
+  frame_new[, therm_diff_bool := -diff_threshold > slope]
   #add also ending point from which the thermocline was not with diff.threshodl slope
   frame_new[shift(therm_diff_bool, n = 1, fill = F, type = "lag") == T & therm_diff_bool == F , therm_diff_bool := T]
   #add group when the validity of condition changed
@@ -39,17 +35,17 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
                                  depth_crit = as.numeric(NA),
                                  temperature_crit = as.numeric(NA))]
   }else{
-  #assign new sequence of steps 1, 2, 3...
-  th_steps[, step_order := rleid(therm_split)]
-  th_steps[, step_order := abs(step_order-max(step_order))+1]
-  #aggregate
-  th_steps.agg <- th_steps[, .(depth_start = min(depth),
-                               depth_end = max(depth),
-                               temperature_start = temperature[1],
-                               temperature_end = tail(temperature, 1),
-                               depth_crit = depth[which(temp_diff == min(temp_diff))[1]],
-                               temperature_crit = temperature[which(temp_diff == min(temp_diff))[1]]),
-                           by = step_order]
+    #assign new sequence of steps 1, 2, 3...
+    th_steps[, step_order := rleid(therm_split)]
+    th_steps[, step_order := abs(step_order-max(step_order))+1]
+    #aggregate
+    th_steps.agg <- th_steps[, .(depth_start = min(depth),
+                                 depth_end = max(depth),
+                                 temperature_start = temperature[1],
+                                 temperature_end = tail(temperature, 1),
+                                 depth_crit = depth[which(slope == min(slope))[1]],
+                                 temperature_crit = temperature[which(slope == min(slope))[1]]),
+                             by = step_order]
   }
   return(th_steps.agg)
 }
@@ -74,4 +70,14 @@ for(i in 1:length(x_out)){
   x_out[i] <- FUN(x[which(times > times_minus[i] & times < times_plus[i])])
 }
 return(x_out)
+
+
+smooth_temperature_profile <- function(depth, temperature, depth_res = 0.1){
+  if(!all(depth == cummax(depth))){
+    stop("Depth must be in decreasing order")
+  }
+  depths_new <- seq(floor(min(depth)), ceiling(max(depth)), depth_res)
+  temperature_model <- splinefun(x = depth, y = cummin(temperature), method = "hyman", ties = mean)
+  temperatures_new <- temperature_model(depths_new)
+  return(list(depth = depths_new, temperature = temperatures_new, slope = c(diff(temperatures_new)/depth_res, 0)))
 }
