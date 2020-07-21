@@ -22,6 +22,28 @@ thermocline <- hobo_data_therm[, compute_thermocline(depth = depth,
                                by = .(interval, lake, location)]
 thermocline$slope <- PAR_THERMOCLINE_SLOPE
 
+ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") & interval %between% c("2015-07-13", "2015-07-18")],
+       mapping = aes(x = interval,
+                     y = temperature_start,
+                     col = location)) +
+  geom_point(shape = ".") 
+
+
+# Investigation why some thermocline starts at 12 Celsius
+wierd_interval <- thermocline[temperature_start < 12 & step_order == 1 & location %in% c("East") & interval %between% c("2015-07-13", "2015-07-18"),][6]
+wierd_profile <- hobo_data_therm[interval == wierd_interval$interval & location == wierd_interval$location]
+wierd_profile_smooth <- data.frame(smooth_temperature_profile(depth = wierd_profile$depth, temperature = wierd_profile$temperature))
+wierd_profile_smooth$is_thermocline <- wierd_profile_smooth$slope < -PAR_THERMOCLINE_SLOPE
+ggplot(data = wierd_profile,
+       mapping = aes(x = temperature,
+                     y = depth)) +
+  scale_y_reverse()+
+  geom_point() +
+  geom_line(data =  wierd_profile_smooth) + 
+  geom_point(data = wierd_profile_smooth[], aes(group = rleid(is_thermocline), col = is_thermocline), alpha=0.3) +
+  theme_minimal()
+
+
 write_csv(thermocline, path = here("data","products", "thermocline_slope.csv"))
 
 # Get seasonal thermocline --------------------------------------------------------------------------------
