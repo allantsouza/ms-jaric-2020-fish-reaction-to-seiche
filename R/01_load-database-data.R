@@ -25,14 +25,14 @@ sql_query_hobo_data <- paste0(
       FROM at_macfish.hobodeployments x 
       INNER JOIN at_macfish.loggerpos y 
       ON x.lp_pos_name = y.lp_pos_name
-      WHERE lt_lake = 'Chabarovice'
+      WHERE x.lp_pos_name IN ('East', 'West')
       ) a 
   INNER JOIN (SELECT *
       FROM at_macfish.hobodata
-      WHERE hd_timestamp_utc BETWEEN '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "'
+      WHERE hd_timestamp_utc BETWEEN '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "' AND
+      hd_valid
       ) l 
-  ON hd_valid AND 
-  l.hl_logger_sn = a.hl_logger_sn AND
+  ON l.hl_logger_sn = a.hl_logger_sn AND
   hd_timestamp_utc BETWEEN hde_deployment_utc AND hde_retrieval_utc"
 )
 
