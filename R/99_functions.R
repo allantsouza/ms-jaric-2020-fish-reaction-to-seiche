@@ -17,7 +17,7 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
     temperature <- temperature[order(depth)]
   }
   #create sequence of new depths
-  frame_new <- as.data.table(smooth_temperature_profile(depth, temperature))
+  frame_new <- as.data.table(interpolate_temperature_profile(depth, temperature))
   #compute derivations in each step (decrease of temperature per meter)
   frame_new[, therm_diff_bool := -diff_threshold > slope]
   #add also ending point from which the thermocline was not with diff.threshodl slope
@@ -72,7 +72,11 @@ for(i in 1:length(x_out)){
 return(x_out)
 
 
-smooth_temperature_profile <- function(depth, temperature, depth_res = 0.1){
+#' Smooth temperature profile
+#' 
+#' @inheritParams compute_thermocline
+#' @details 
+interpolate_temperature_profile <- function(depth, temperature, depth_res = 0.1){
   if(!all(depth == cummax(depth))){
     stop("Depth must be in decreasing order")
   }
