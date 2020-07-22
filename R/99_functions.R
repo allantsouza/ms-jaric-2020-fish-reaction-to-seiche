@@ -81,3 +81,75 @@ smooth_temperature_profile <- function(depth, temperature, depth_res = 0.1){
   temperatures_new <- temperature_model(depths_new)
   return(list(depth = depths_new, temperature = temperatures_new, slope = c(diff(temperatures_new)/depth_res, 0)))
 }
+
+
+
+#' Get day/night for given time
+#'
+#' @param x vector of times
+#' @param lat latitude
+#' @param lon longitude
+#' @param label_day character vector of length 1 - label for day
+#' @param label_night character vector of length 1 - label for day 
+#'
+#' @return character vector giving night or day
+#' @export
+#'
+#' @examples
+#' get_dial_period(x = seq.POSIXt(from = Sys.time(), to = Sys.time()+84600, length.out = 20))
+get_dial_period <- function(x, lat = 49.5765639, lon = 14.6637706, label_day = "day", label_night = "night"){
+  if(length(x) == 0) stop("Length of the input is 0")
+  if(all(is.na(x))) return(as.character(x))
+  sunset_sunrise <- get_sunsets_sunrises(x, lat = lat, lon = lon)
+  day_nigth <- as.character(ifelse(x > sunset_sunrise$sunrise & x < sunset_sunrise$sunset, label_day, label_night))
+  return(day_nigth)
+}
+
+
+#' Get sunset and sunrise times for each given time
+#' 
+#' For each given time, function returns sunset and sunrise time on that given day date
+#' 
+#' @inheritParams get_dial_period
+get_sunsets_sunrises <- function(x, lat = 49.5765639, lon = 14.6637706){
+  sunrise_sunset <- get_sunset_sunrise(x, lat, lon)
+  sunrise_sunset$Date <- as.Date(sunrise_sunset$sunrise)
+  res <- merge(data.frame(x, xorder = 1:length(x), Date = as.Date(x)), sunrise_sunset, by = "Date", all.x = T)
+  res[order(res$xorder), c("sunset", "sunrise")]
+}
+
+#' Get sunset and sunrise times for time span given by time vector
+#' 
+#' for time span given by time vector, function returns sunset and sunrise times
+#' 
+#' @inheritParams get_dial_period
+get_sunset_sunrise <- function(x, lat = 49.5765639, lon = 14.6637706){
+  from <- min(x, na.rm = T)
+  to <- max(x, na.rm = T)
+  StreamMetabolism::sunrise.set(lat, lon, from, num.days = difftime(time1 = to, time2 = from, units = "days")+2)
+}
+
+#' Get night time polygons
+#'
+#' @inheritParams get_dial_period
+#'
+#' @return
+#' @export
+#'
+#' @examples
+get_nighttime_polygons <- function(x, lat = 49.5765639, lon = 14.6637706){
+  sunsetsunrise <- get_sunset_sunrise(x, lat = lat, lon = lon)
+  nightime.vector <- sort(c(sunsetsunrise[-1,1], sunsetsunrise[-nrow(sunsetsunrise),2]))
+  x <- rep(nightime.vector, each = 2)
+  y <- rep(c(-Inf,Inf), times = length(nightime.vector))
+  xord <- rep(c(1,2,4,3), times =length(nightime.vector)/2)
+  night_polygons <- data.frame(x,
+                               y,
+                               id = rep(1:(round(length(nightime.vector)/2)), each = 4),
+                               xord = xord)
+  night_polygons <- night_polygons[order(xord),]
+  return(night_polygons)
+}
+
+
+
