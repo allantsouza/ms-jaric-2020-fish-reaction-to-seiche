@@ -26,3 +26,6 @@ con <- dbConnect(drv = PostgreSQL(),
                  user= Sys.getenv("dbuser"),
                  password = Sys.getenv("dbpassword"))
 
+
+# ggplot theme
+theme_set(theme_minimal())

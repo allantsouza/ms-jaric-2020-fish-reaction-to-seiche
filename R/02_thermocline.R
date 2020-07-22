@@ -109,7 +109,6 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
                      col = therm_part,
                      linetype  = location)) +
   geom_line() +
-  theme_minimal() +
   xlab("Date") +
   ylab("Temperature (moving median)")
 
@@ -132,7 +131,6 @@ ggplot(data = thermocline_temperatures_rolled[!is.na(temperature) & step_order =
                      col = therm_part)) +
   geom_line() +
   facet_wrap(~ location, ncol = 1) +
-  theme_minimal() + 
   scale_y_reverse() +
   xlab("Date") + 
   ylab("Depth") +
@@ -167,7 +165,6 @@ therm_lake[, "lake_therm_depth" := NULL]
 ggplot(therm_lake[step_order == 1], aes(x = interval, y = balanced_therm_depth , col = therm_part))+
   geom_point(shape = ".") +
   geom_line() + 
-  theme_minimal() + 
   xlab("Date") +
   ylab("Depth") + 
   scale_y_reverse() +
@@ -193,20 +190,15 @@ write_csv(x = thermocline_data, path = here("data", "products", "thermocline_dat
 
 # Overview
 ggplot(thermocline_data[abs(deviation) > 0.7], aes(x = deviation, y = thickness, col = location)) +
-  geom_point() +
-  geom_smooth(se = F, method = "lm") +
-  theme_minimal()
+  geom_point() + 
+  geom_smooth(method = "lm")
 
 ggplot(thermocline_data[therm_part == "center"], aes(x = balanced_therm_depth, y = depth, col = location)) +
-  geom_point() +
-  facet_wrap(~location) +
-  theme_minimal()
+  geom_point() + 
+  facet_wrap(~location)
 
 ggplot(thermocline_data[therm_part == "center"], aes(x = interval, y = thickness, col = location)) + 
-  geom_line() +
-  theme_minimal()
+geom_line()
 
 ggplot(thermocline_data[therm_part == "center" ], aes(x = interval, y = deviation, col = location)) + 
-  geom_line() +
-  theme_minimal()
-
+geom_line()
