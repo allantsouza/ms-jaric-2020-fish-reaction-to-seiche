@@ -1,0 +1,612 @@
+# Visualization of figures for seiches study
+#
+
+# Figure 1: showing positions of hobologgers and seiche
+library(RPostgreSQL)
+library(postGIStools)
+library(sp)
+library(data.table)
+library(maptools)
+library(rgdal)
+library(geosphere)
+library(rgeos)
+library(ggplot2)
+#create connection (it is not RODBC connection)
+con <- dbConnect(RPostgreSQL::PostgreSQL(),dbname = 'macfishdb', host = "172.21.3.20", port = 5432, user = 'macfishuser', password = 'macf1shus3r!')
+
+#load most lake shpfile
+shape.chab.utm <- get_postgis_query(con, "SELECT lt_lake, lt_shoreline_pol FROM at_macfish.laketable where lt_lake = 'Chabarovice' ", geom_name = "lt_shoreline_pol")
+
+hobo.chab.latlon <- data.table(get_postgis_query(con, "SELECT lp_pos_name, ST_Y(ST_Transform(lp_geom, 4326)) as lat, ST_X(ST_Transform(lp_geom, 4326)) as lon 
+                                          FROM at_macfish.loggerpos 
+                                          WHERE lt_lake = 'Chabarovice'"))
+hobo.chab.utm <- data.table(get_postgis_query(con, "SELECT lp_pos_name, ST_Y(ST_Transform(lp_geom, 32633)) as easting, ST_X(ST_Transform(lp_geom, 32633)) as northing 
+                                          FROM at_macfish.loggerpos 
+                                          WHERE lt_lake = 'Chabarovice'"))
+
+hobo.chab.latlon.sp <- SpatialPointsDataFrame(coords = hobo.chab.latlon[,.(lon,lat)] , data = hobo.chab.latlon, proj4string =  CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+hobo.chab.utm.sp <- SpatialPointsDataFrame(coords = hobo.chab.utm[,.(easting,northing)] , data = hobo.chab.utm, proj4string =  CRS("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 "))
+
+# preparing data for ggplot
+shape_points_chab <- fortify(shape.chab.utm)[,1:2]
+names(shape_points_chab) <- c("x", "y")
+shape_points_chab <- shape_points_chab[1:(length(shape_points_chab$x)),]
+
+#load center line of the lake for calculation of planar distance along middle axis
+setwd("~/MacFish_data/centerline_Chabarovice")
+line.pos <- readOGR(dsn = ".", layer = "line_pos")
+line.latlon <- spTransform(line.pos, CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+#projection of hobologgers positions to projected on center line 
+hobodist <- dist2Line(hobo.chab.latlon.sp, line.latlon)
+# create new positions
+points.new <- SpatialPointsDataFrame(coords = hobodist[,c(2,3)], data =  hobo.chab.latlon.sp@data, proj4string = CRS("+proj=longlat +datum=WGS84"))
+# for each point, get distance from wester shore of the lake
+p1 <- SpatialPoints(coords = matrix(c(13.92779,50.65650), nrow = 1), proj4string = CRS("+proj=longlat +datum=WGS84"))
+p1.utm <- spTransform(x = p1, CRSobj = CRS("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 "))
+points.new.utm <- spTransform(x = points.new , CRSobj = CRS("+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 "))
+points.new.utm$disttowest <- gDistance(spgeom1 =p1.utm , spgeom2 =   points.new.utm, byid = T)
+#extract pure data
+hobo.dists <- data.table(points.new.utm@data)
+
+# getting temperature ####
+# prepare temperatures and select date
+temperature <- data.table(dbGetQuery(con, "SELECT * FROM at_macfish.hobo_temperatures where hte_pos_name in ('West', 'East') AND hte_timestamp_utc BETWEEN '2015-06-03 22:00:00' AND '2015-11-09 12:00:00' AND MOD(hte_depth,0.5) = 0 ;") )
+# dcast to get gradient between logger sites
+temp.sp.s <- data.table(dcast(temperature,  hte_depth + hte_timestamp_utc ~ hte_pos_name , value.var = "hte_temperature"))
+temp.sp.s <- na.omit(temp.sp.s)
+#get all x
+dist.new <- seq(0, gLength(line.pos),50)
+#get logger distance for intepolation of values (better to do it properly - project logger sites to center line)
+distOfLoggers <- c(2500.5, 400.7)
+#interpolate into space for each depth and timestamp
+temp.interp <- temp.sp.s[, .(dist = dist.new , temperature = approx(x = distOfLoggers, y= c(East, West), xout = dist.new, rule = 2)$y), by =.(hte_depth, hte_timestamp_utc)]
+
+### TEMPERATURE HEATMAP SCRIPT FROM VILEM No. 2 ##############################
+date.start <- min(as.Date(temp.interp$hte_timestamp_utc))
+date.end <- max(as.Date(temp.interp$hte_timestamp_utc))
+
+library(ggspatial)
+map.gg <- ggplot()+
+  geom_spatial_polygon(data = shape_points_chab, mapping = aes(x = x, y = y ), fill= NA,col = "black", crs = 32633, size = 0.8)+
+  geom_spatial_point(mapping = aes(y = easting, x = northing),data=hobo.chab.utm , crs = 32633, size = 3, col = "red")+
+  coord_sf(crs = 32633)+
+  theme(
+    panel.background = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    plot.margin = margin(0, 0, 0, 0, "cm")
+  )
+
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+temp.gg <- ggplot(temp.interp[hte_timestamp_utc == "2015-09-06 14:25:00"]) + geom_tile(aes(x = dist, y = hte_depth, fill = temperature)) +
+  scale_fill_gradientn(colours=jet.colors(7)) +
+  scale_y_continuous(trans = "reverse", expand  = c(0,0)) +
+  geom_vline( xintercept = hobo.dists$disttowest, size = 1.5)+
+  xlab("distance from western shore (m)") +
+  ylab("Depth") +
+  labs(fill = expression('temp'~degree*C))+
+  theme (
+  plot.margin = margin(0, 0.5, 0, 1.5, "cm"),
+  text = element_text(size = 15)
+  )
+library(ggpubr)
+hobotemp_map <- ggarrange(map.gg, temp.gg, ncol = 1, nrow = 2)
+
+setwd("~/MACFISH movement_visualization/seiche_study")
+ggplot(temp.interp[hte_timestamp_utc == "2015-09-06 14:25:00"]) + geom_tile(aes(x = dist, y = hte_depth, fill = temperature)) +
+  scale_fill_gradientn(colours=jet.colors(7)) +
+  #geom_point(data = fish.dt, aes(x = timestamp_utc, y= depthmean)) +
+  scale_y_continuous(trans = "reverse", expand  = c(0,0)) +
+  geom_vline(xintercept = hobo.dists$disttowest, size = 1.5)+
+  scale_x_continuous(expand  = c(0,0)) +
+  xlab("Distance from western shore (m)") +
+  ylab("Depth (m)") +
+  labs(fill = expression('T'(~degree*C)))+
+  theme(
+    plot.margin = margin(1, 0.5, 0, 0.5, "cm"),
+    text = element_text(size = 32))+
+      ggsave("seiche_fig1_maponly.tif",device = "tiff", units = "in", height = 6, width = 12, dpi = 150)
+
+
+
+
+### DATA EXTRACTION FROM SERVER ##############################################################
+#open connection -
+con <-  dbConnect(drv = PostgreSQL(), dbname ="macfishdb", host="172.21.3.20", user= "macfishuser", password = "macf1shus3r!")
+
+# Obtaining and merging data from each of the six datatables ####
+select.data <- "SELECT * FROM (SELECT a1.*, dd_lake, dd_timestamp_utc, dd_depth, dd_temperature  FROM at_macfish.fishshiftsdepths a1 INNER JOIN at_macfish.detsdepth a2 ON a1.dd_id=a2.dd_id) b1 
+INNER JOIN (SELECT tf_tag_sn tag_sn, tf_species species FROM at_macfish.taggedfish ) b2 ON b1.up_tag_sn = b2.tag_sn ;"
+#WHERE tf_species = 'perch'
+fish.depths <- data.table(dbGetQuery(con, select.data, stringsAsFactors = F))
+select.data <- "SELECT shiftid, lt_lake, elevating_side, shiftheight, shift_start_utc, shift_end_utc, speed_max_time, max_speed, thermpart
+FROM at_macfish.thermocline_shifts WHERE lt_lake='Chabarovice' AND step_order = 1 AND degree_per_meter = 1 AND (thermpart = 'center' OR thermpart = 'start' OR thermpart = 'end') ;"
+shifts <- data.table(dbGetQuery(con, select.data, stringsAsFactors = F))
+position.diel <-  merge(fish.depths, shifts, by = c("shiftid"))
+select.data <- "SELECT lakepartid, partname
+FROM at_macfish.lakepart ;"
+lakeside <- data.table(dbGetQuery(con, select.data, stringsAsFactors = T))
+position.diel <-  merge(position.diel, lakeside, by = c("lakepartid"))
+
+# Selecting only for data where fish was in the elevating side of the lake during seiche
+selected.dataset <- position.diel[position.diel$elevating_side != position.diel$partname & position.diel$partname != "Middle"]
+#selected.dataset <- position.diel[position.diel$elevating_side == position.diel$partname & position.diel$partname != "Middle"]
+
+#select.data <- "SELECT lp_pos_name, th_timestamp_utc, th_depth, th_thermpart
+#FROM at_macfish.thermocline WHERE th_step_order = 1 AND th_degree_per_meter = 1 AND (th_thermpart = 'center' OR th_thermpart = 'start' OR th_thermpart = 'end') ;"
+select.data <- "SELECT lp_pos_name, th_timestamp_utc, th_depth, th_thermpart
+FROM at_macfish.thermocline WHERE th_step_order = 1 AND th_degree_per_meter = 1 AND th_thermpart = 'center' ;"
+thermocline <- data.table(dbGetQuery(con, select.data, stringsAsFactors = F))
+
+
+#rolljoin (creation of "RolljoinedTable" datatable) ####
+selected.dataset[, ':=' (position = partname, time = dd_timestamp_utc, therm = thermpart)]
+thermocline[, ':=' (position = lp_pos_name, time = th_timestamp_utc, therm = th_thermpart)]
+setkey(selected.dataset, position, time)
+setkey(thermocline, position, time)
+RolljoinedTable <- thermocline[selected.dataset, roll="nearest"]
+RolljoinedTable$date <- as.Date(RolljoinedTable$th_timestamp_utc, tz = "UTC")
+
+###################################################################################
+#SUNSET, SUNRISE, DIEL PERIODS AND LUNAR PHASE ####
+######################### ###
+# setting of sunset and sunrise according to geographical position and date
+
+# extracting start and end time
+start.time <- min(RolljoinedTable$shift_start_utc) 
+end.time <- max(RolljoinedTable$shift_end_utc) 
+
+lakes <- c("Chabarovice")
+civil.twi <- data.table(timestamp = rep(seq(start.time, end.time, by = "days")), up_lake = rep(lakes, each = length(seq(start.time, end.time, by = "days"))),
+                        lat = rep(c(50.654113), each = length(seq(start.time, end.time, by = "days"))), lon = rep(c(13.928351), each = length(seq(start.time, end.time, by = "days"))))
+civil.twi[, c("dusk", "dawn", "sunrise", "sunset") := 
+            .(crepuscule(cbind(lon, lat), timestamp,  solarDep=6, direction="dusk", POSIXct.out=TRUE)$time,
+              crepuscule(cbind(lon, lat), timestamp,  solarDep=6, direction="dawn", POSIXct.out=TRUE)$time,
+              sunriset(cbind(lon, lat), timestamp, direction="sunrise", POSIXct.out=TRUE)$time,
+              sunriset(cbind(lon, lat), timestamp, direction="sunset", POSIXct.out=TRUE)$time
+            ), by = up_lake]
+civil.twi[, date := as.Date(timestamp)]
+civil.twi[, dusk_tdiff := difftime(dusk,sunset,units = "secs" )]
+civil.twi[, dawn_tdiff := difftime(sunrise,dawn,units = "secs")]
+civil.twi.sub <- civil.twi[,.(date,up_lake,dusk,dawn,sunrise,sunset, dusk_tdiff, dawn_tdiff)]
+
+# merging sunset time with positions
+position.diel <-  merge(civil.twi.sub, RolljoinedTable, allow.cartesian = TRUE, by = c("date"))
+
+# Adding dummy day / night
+# adding twilight periods, one hour before and after twilight periods, according to Prchalova et al. 2012
+position.diel$diel.period[position.diel$th_timestamp_utc >= position.diel$dawn & position.diel$th_timestamp_utc <= position.diel$dusk ] = "day"
+position.diel$diel.period[position.diel$th_timestamp_utc < position.diel$dawn | position.diel$th_timestamp_utc > position.diel$dusk ] = "night"
+position.diel$diel.period[position.diel$th_timestamp_utc >= (position.diel$sunset - position.diel$dusk_tdiff) & position.diel$th_timestamp_utc < position.diel$dusk ] = "dusk"
+position.diel$diel.period[position.diel$th_timestamp_utc >= position.diel$dawn & position.diel$th_timestamp_utc < (position.diel$sunrise + position.diel$dawn_tdiff) ] = "dawn"
+
+
+### NEW VARIABLES AND THE ANALYSIS ############################################################333
+#making "shift.ratio.time", standardized duration of shift that ranges between 0 and 1
+position.diel[, shift.ratio.time := (as.numeric(difftime(dd_timestamp_utc, shift_start_utc, units=c("mins")))/(as.numeric(difftime(shift_end_utc, shift_start_utc, units=c("mins")))+1))]
+#position.diel[, th_depth := (-th_depth)] 
+#position.diel[, dd_depth := (-dd_depth)] 
+#making "Fish.dataset.per.shift" data table, with resulting data per fish-shifts
+Fish.dataset.per.shift <- position.diel[, .(coverage = .N / (as.numeric(difftime(shift_end_utc[1], shift_start_utc[1], units=c("mins")))+1), 
+                                            regression.distance.slope = as.numeric(coef(lm((dd_depth - th_depth) ~ shift.ratio.time))[2]), 
+                                            regression.distance.intercept = as.numeric(coef(lm((dd_depth - th_depth) ~ shift.ratio.time))[1]), 
+                                            min.distance = min(dd_depth-th_depth), 
+                                            mean.distance = mean(abs(dd_depth-th_depth)), 
+                                            regression.fishdepth.slope = as.numeric(coef(lm((dd_depth) ~ shift.ratio.time))[2]),
+                                            regression.fishdepth.intercept = as.numeric(coef(lm((dd_depth) ~ shift.ratio.time))[1]),
+                                            regression.thermocline.slope = as.numeric(coef(lm((th_depth) ~ shift.ratio.time))[2]),
+                                            min.fishdepth = min(dd_depth), 
+                                            mean.fishdepth = mean(dd_depth),                                             
+                                            shiftheight = shiftheight[1], 
+                                            diel.period = diel.period[1], 
+                                            true.shiftheight = abs(max(th_depth)-min(th_depth)),
+                                            position = position[1]), by = .(tag_sn, shiftid, th_thermpart)]
+#selection of only those data in "Fish.dataset.per.shift" where fish detection coverage per shift was at least 0.75
+Fish.dataset.per.shift <- Fish.dataset.per.shift[Fish.dataset.per.shift$coverage > 0.75]
+#selection of only those data in "Fish.dataset.per.shift" where true shifheight was at least 1 meter
+Fish.dataset.per.shift <- Fish.dataset.per.shift[Fish.dataset.per.shift$true.shiftheight >= 1]
+table(Fish.dataset.per.shift$position)
+Fish.dataset.per.shift 
+table(Fish.dataset.per.shift$tag_sn)
+
+
+# Obtaining temperature data ####
+select.temp.data <- "SELECT * FROM at_macfish.hobo_temperatures a1 WHERE (hte_pos_name = 'West' OR hte_pos_name = 'East') ;"
+temperatures <- data.table(dbGetQuery(con, select.temp.data, stringsAsFactors = F))
+
+
+#disconnect from the server
+dbDisconnect(con)
+
+# select of authors choice of pictures
+milan_choice <- data.table(species = c("rudd", "rudd", "wels", "wels", "pike", "pike", "tench", "tench"), pers_name = "milan",
+                           shiftid = c(1729,1749,1833,2099,52,53,1832,1834)) 
+allan_choice <- data.table(species = c("rudd", "rudd", "wels", "wels", "pike", "pike", "tench", "tench"), pers_name = "allan",
+                           shiftid = c(1733,1727,1737,1764,6,53,521,2343)) 
+ivan_choice <- data.table(species = c("rudd", "rudd", "wels", "wels", "pike", "pike", "tench", "tench"), pers_name = "ivan",
+                           shiftid = c(17,1731,2250,2099,6,23,521,70)) 
+
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+# visualization of each choice separately
+Selected.position.milan <-  merge(position.diel, milan_choice, by = c("species", "shiftid"))
+shiftid_ts_milan <- unique(Selected.position.milan[, .(th_timestamp_utc, shiftid)])
+shiftid_temperatures_milan <- merge(temperatures,shiftid_ts_milan, by.x = c("hte_timestamp_utc"), by.y = c("th_timestamp_utc") )
+
+# making list of graphs
+milan_plots <- list()
+for(i in 1:nrow(milan_choice)) {
+  pos <- Selected.position.milan[shiftid == milan_choice$shiftid[i]]
+  temp <-  temperatures[temperatures$hte_timestamp_utc >= pos$shift_start_utc[1] & 
+                          temperatures$hte_timestamp_utc <= pos$shift_end_utc[1] & 
+                          temperatures$hte_pos_name == pos$partname[1] &
+                          temperatures$hte_depth >= (min(c(min(pos$th_depth),min(pos$dd_depth)))-2) &
+                          temperatures$hte_depth <= (max(c(max(pos$th_depth),max(pos$dd_depth)))+2)]
+
+p1 <- eval(substitute(
+  ggplot(data = temp) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+  scale_fill_gradientn(colours=jet.colors(7)) +
+  geom_point(data = pos , aes(x = dd_timestamp_utc, y= dd_depth), size = 0.5, colour = "black") +
+  geom_line(data = pos , aes(x = dd_timestamp_utc, y= th_depth)) +
+  scale_y_continuous(trans = "reverse", expand  = c(0,0)) +
+  scale_x_datetime(date_breaks = "1 hour", expand  = c(0,0), date_labels ="%H:%M") +
+  xlab("Time") +
+  ylab("Depth") +
+  ggtitle(paste(unique(pos$species),unique(pos$diel.period), sep = "_"))+
+  #facet_wrap(~ species+diel.period, ncol = 2, drop =T, scales = "free_x" )
+  #ggtitle(paste(a$shiftid, a$diel.period.y, sep = " "))+
+  labs(fill = expression('Temperature'~degree*C)) +
+  theme_bw(base_size=20) + guides(fill = guide_colorbar(barwidth = 3.5, barheight = 20)[ i])+
+    theme(legend.position = 'none',
+          axis.title = element_blank(),
+          axis.text = element_text(size = 10),
+          plot.title = element_text(size = 10, face = "bold"),
+          plot.margin = margin(0,0,0,0))
+  ,list(i = i)))
+print(i)
+print(p1)
+milan_plots[[i]] <- p1  # add each plot into plot list
+}
+# extract legend separately
+milan_legend <- get_legend(ggplot(data = shiftid_temperatures_milan) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+                             scale_fill_gradientn(colours=jet.colors(7))+ theme(legend.title = element_blank()))
+as_ggplot(milan_legend)
+
+setwd("~/MACFISH movement_visualization/seiche_study")
+
+# seting layout for pictures
+lay <- rbind(c(1,1,1,2,2,2,NA),
+             c(3,3,3,4,4,4,9),
+             c(5,5,5,6,6,6,9),
+             c(7,7,7,8,8,8,NA))
+library(gridExtra)
+# combination of pictures together
+jpeg("Milan_fish_seiche_reaction.jpg", height = 8, width = 7, res = 150, units="in")
+grid.arrange(milan_plots[[1]],milan_plots[[2]],
+                          milan_plots[[3]],milan_plots[[4]], 
+                          milan_plots[[5]],milan_plots[[6]], 
+                          milan_plots[[7]],milan_plots[[8]],
+                          milan_legend, layout_matrix = lay,
+                          top = "Milan", left = "Depth (m)",
+                          bottom = "Time")
+dev.off()
+
+Selected.position.ivan <-  merge(Selected.position.diel, ivan_choice, by = c("species", "shiftid"))
+shiftid_ts_ivan <- unique(Selected.position.ivan[, .(th_timestamp_utc, shiftid)])
+
+ivan_plots <- list()
+for(i in 1:nrow(ivan_choice)) {
+  pos <- Selected.position.ivan[shiftid == ivan_choice$shiftid[i]]
+  temp <-temperatures[temperatures$hte_timestamp_utc >= pos$shift_start_utc[1] & 
+                        temperatures$hte_timestamp_utc <= pos$shift_end_utc[1] & 
+                        temperatures$hte_pos_name == pos$partname[1] &
+                        temperatures$hte_depth >= (min(c(min(pos$th_depth),min(pos$dd_depth)))-2) &
+                        temperatures$hte_depth <= (max(c(max(pos$th_depth),max(pos$dd_depth)))+2)]
+  
+  p1 <- eval(substitute(
+    ggplot(data = temp) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+      scale_fill_gradientn(colours=jet.colors(7)) +
+      geom_point(data = pos , aes(x = dd_timestamp_utc, y= dd_depth), size = 0.5, colour = "black") +
+      geom_line(data = pos , aes(x = dd_timestamp_utc, y= th_depth)) +
+      scale_y_continuous(trans = "reverse", expand  = c(0,0)) +
+      scale_x_datetime(date_breaks = "1 hour", expand  = c(0,0), date_labels ="%H:%M") +
+      xlab("Time") +
+      ylab("Depth") +
+      ggtitle(paste(unique(pos$species),unique(pos$diel.period.y), sep = "_"))+
+      #facet_wrap(~ species+diel.period, ncol = 2, drop =T, scales = "free_x" )
+      #ggtitle(paste(a$shiftid, a$diel.period.y, sep = " "))+
+      labs(fill = expression('Temperature'~degree*C)) +
+      theme_bw(base_size=20) + guides(fill = guide_colorbar(barwidth = 3.5, barheight = 20)[ i])+
+      theme(legend.position = 'none',
+            axis.title = element_blank(),
+            axis.text = element_text(size = 10),
+            plot.title = element_text(size = 10, face = "bold"),
+            plot.margin = margin(0,0,0,0))
+    ,list(i = i)))
+  print(i)
+  print(p1)
+  ivan_plots[[i]] <- p1  # add each plot into plot list
+}
+
+ivan_legend <- get_legend(ggplot(data = shiftid_temperatures_ivan) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+                             scale_fill_gradientn(colours=jet.colors(7))+ theme(legend.title = element_blank()))
+as_ggplot(ivan_legend)
+
+setwd("~/MACFISH movement_visualization/seiche_study")
+
+lay <- rbind(c(1,1,1,2,2,2,NA),
+             c(3,3,3,4,4,4,9),
+             c(5,5,5,6,6,6,9),
+             c(7,7,7,8,8,8,NA))
+library(gridExtra)
+
+jpeg("ivan_fish_seiche_reaction.jpg", height = 8, width = 7, res = 150, units="in")
+grid.arrange(ivan_plots[[1]],ivan_plots[[2]],
+             ivan_plots[[3]],ivan_plots[[4]], 
+             ivan_plots[[5]],ivan_plots[[6]], 
+             ivan_plots[[7]],ivan_plots[[8]],
+             ivan_legend, layout_matrix = lay,
+             top = "ivan", left = "Depth (m)",
+             bottom = "Time")
+dev.off()
+
+shiftid_ts <- unique(Selected.position.diel[, .(th_timestamp_utc, shiftid)])
+shiftid_temperatures <- merge(temperatures,shiftid_ts, by.x = c("hte_timestamp_utc"), by.y = c("th_timestamp_utc") )
+
+Selected.position.allan <-  merge(Selected.position.diel, allan_choice, by = c("species", "shiftid"))
+shiftid_ts_allan <- unique(Selected.position.allan[, .(th_timestamp_utc, shiftid)])
+shiftid_temperatures_allan <- merge(temperatures,shiftid_ts_allan, by.x = c("hte_timestamp_utc"), by.y = c("th_timestamp_utc") )
+
+unique(shiftid_temperatures_allan$shiftid)
+
+allan_plots <- list()
+for(i in 1:nrow(allan_choice)) {
+  pos <- Selected.position.allan[shiftid == allan_choice$shiftid[i]]
+  temp <- temperatures[temperatures$hte_timestamp_utc >= pos$shift_start_utc[1] & 
+                         temperatures$hte_timestamp_utc <= pos$shift_end_utc[1] & 
+                         temperatures$hte_pos_name == pos$partname[1] &
+                         temperatures$hte_depth >= (min(c(min(pos$th_depth),min(pos$dd_depth)))-2) &
+                         temperatures$hte_depth <= (max(c(max(pos$th_depth),max(pos$dd_depth)))+2)]
+  
+  p1 <- eval(substitute(
+    ggplot(data = temp) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+      scale_fill_gradientn(colours=jet.colors(7)) +
+      geom_point(data = pos , aes(x = dd_timestamp_utc, y= dd_depth), size = 0.5, colour = "black") +
+      geom_line(data = pos , aes(x = dd_timestamp_utc, y= th_depth)) +
+      scale_y_continuous(trans = "reverse", expand  = c(0,0)) +
+      scale_x_datetime(date_breaks = "1 hour", expand  = c(0,0), date_labels ="%H:%M") +
+      xlab("Time") +
+      ylab("Depth") +
+      ggtitle(paste(unique(pos$species),unique(pos$diel.period.y), sep = "_"))+
+      #facet_wrap(~ species+diel.period, ncol = 2, drop =T, scales = "free_x" )
+      #ggtitle(paste(a$shiftid, a$diel.period.y, sep = " "))+
+      labs(fill = expression('Temperature'~degree*C)) +
+      theme_bw(base_size=20) + guides(fill = guide_colorbar(barwidth = 3.5, barheight = 20)[ i])+
+      theme(legend.position = 'none',
+            axis.title = element_blank(),
+            axis.text = element_text(size = 10),
+            plot.title = element_text(size = 10, face = "bold"),
+            plot.margin = margin(0,0,0,0))
+    ,list(i = i)))
+  print(i)
+  print(p1)
+  allan_plots[[i]] <- p1  # add each plot into plot list
+}
+
+allan_legend <- get_legend(ggplot(data = shiftid_temperatures_allan) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+                            scale_fill_gradientn(colours=jet.colors(7))+ theme(legend.title = element_blank()))
+as_ggplot(allan_legend)
+
+setwd("~/MACFISH movement_visualization/seiche_study")
+
+lay <- rbind(c(1,1,1,2,2,2,NA),
+             c(3,3,3,4,4,4,9),
+             c(5,5,5,6,6,6,9),
+             c(7,7,7,8,8,8,NA))
+library(gridExtra)
+
+jpeg("allan_fish_seiche_reaction.jpg", height = 8, width = 7, res = 150, units="in")
+grid.arrange(allan_plots[[1]],allan_plots[[2]],
+             allan_plots[[3]],allan_plots[[4]], 
+             allan_plots[[5]],allan_plots[[6]], 
+             allan_plots[[7]],allan_plots[[8]],
+             allan_legend, layout_matrix = lay,
+             top = "allan", left = "Depth (m)",
+             bottom = "Time")
+dev.off()
+
+
+# Final selection of graphs ####
+final_choice <- data.table(species = c("rudd", "rudd", "tench", "tench", "wels", "wels", "pike", "pike"), pers_name = "ivan",
+                          shiftid = c(17,1727,521,70,2250,2099,52,53)) 
+
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+
+Selected.position.final <-  merge(position.diel, final_choice, by = c("species", "shiftid"))
+# adding correct eng. name, done according to Fishbase
+Selected.position.final[species == "pike", off_name := "Nothern pike" ]
+Selected.position.final[species == "wels", off_name := "Wels catfish" ]
+Selected.position.final[species == "rudd", off_name := "Rudd" ]
+Selected.position.final[species == "tench", off_name := "Tench" ]
+
+unique(Selected.position.final[,.(species, shiftid, diel.period)])
+
+shiftid_ts_final <- unique(Selected.position.final[, .(th_timestamp_utc, shiftid)])
+shiftid_temperatures_final <- merge(temperatures,shiftid_ts_final, by.x = c("hte_timestamp_utc"), by.y = c("th_timestamp_utc") )
+
+
+final_plots <- list()
+for(i in 1:nrow(final_choice)) {
+  pos <- Selected.position.final[shiftid == final_choice$shiftid[i]]
+  temp <-  temperatures[temperatures$hte_timestamp_utc >= pos$shift_start_utc[1] & 
+                          temperatures$hte_timestamp_utc <= pos$shift_end_utc[1] & 
+                          temperatures$hte_pos_name == pos$partname[1] &
+                          #temperatures$hte_depth >= (min(c(min(pos$th_depth),min(pos$dd_depth)))-2) &
+                          temperatures$hte_depth <= (max(c(max(pos$th_depth),max(pos$dd_depth)))+2)]
+  
+  p1 <- eval(substitute(
+    ggplot(data = temp) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+      scale_fill_gradientn(colours=jet.colors(7)) +
+      geom_point(data = pos , aes(x = dd_timestamp_utc, y= dd_depth), size = 0.5, colour = "black") +
+      geom_line(data = pos , aes(x = dd_timestamp_utc, y= th_depth)) +
+      scale_y_continuous(trans = "reverse", expand  = c(0,0),limits = c(11, 0),  labels = scales::number_format(accuracy = 1))+
+      scale_x_datetime(date_breaks = "1 hour", expand  = c(0,0), date_labels ="%H:%M") +
+      xlab("Time") +
+      ylab("Depth") +
+      ggtitle(min(pos$date))+
+      #facet_wrap(~ species+diel.period, ncol = 2, drop =T, scales = "free_x" )
+      #ggtitle(paste(a$shiftid, a$diel.period.y, sep = " "))+
+      labs(fill = expression('Temperature'~degree*C), y = paste(unique(pos$off_name))) +
+      theme_bw(base_size=20) + guides(fill = guide_colorbar(barwidth = 3.5, barheight = 20)[ i])+
+      theme(legend.position = 'none',
+            axis.title.x = element_blank(),
+            axis.text.x = element_text(size = 8),
+            axis.text.y = element_text(size = 10),
+            axis.title.y = element_text(size = 12, vjust = -2, face="bold"),
+            plot.margin = margin(0,0,0,0),
+            plot.title = element_text(size = 8, vjust = -3))
+    ,list(i = i)))
+  print(i)
+  print(p1)
+  final_plots[[i]] <- p1  # add each plot into plot list
+}
+library(ggpubr)
+final_legend <- get_legend(ggplot(data = shiftid_temperatures_final) + geom_tile(aes(x = hte_timestamp_utc, y = hte_depth, fill = hte_temperature)) +
+                             scale_fill_gradientn(colours=jet.colors(7))+
+                             labs(fill = expression('T (°C)')))
+as_ggplot(final_legend)
+
+setwd("~/MACFISH movement_visualization/seiche_study")
+
+# extraction of single graphs and turning off y axis description for night graphs
+rudd_day <- final_plots[[1]]
+rudd_night <- final_plots[[2]]+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), plot.margin = margin(0,0,0,15))
+tench_day <- final_plots[[3]] + coord_cartesian( x =c(as.POSIXct("2015-07-09 06:00:00"),as.POSIXct("2015-07-09 08:59:00") )) # a bit twiking with limits not to have cut time there
+tench_night <- final_plots[[4]] +  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), plot.margin = margin(0,0,0,15))
+wels_day <- final_plots[[5]]
+wels_night <- final_plots[[6]]+  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), plot.margin = margin(0,0,0,15))
+pike_day <- final_plots[[7]]
+pike_night <- final_plots[[8]] +  theme(axis.text.y = element_blank(), axis.title.y = element_blank(), plot.margin = margin(0,0,0,15))
+
+lay <- rbind(c(1,1,1,2,2,2,9),
+             c(3,3,3,4,4,4,9),
+             c(5,5,5,6,6,6,9),
+             c(7,7,7,8,8,8,9))
+library(gridExtra)
+library(grid)
+jpeg("final_fish_seiche_reaction_public.jpeg", height = 8, width = 7, res = 600, units="in")
+grid.arrange(rudd_day,rudd_night,
+             tench_day,tench_night, 
+             wels_day ,wels_night, 
+             pike_day ,pike_night,
+             final_legend, layout_matrix = lay,
+             top = textGrob("DAY                                    NIGHT",gp=gpar(fontsize=12,font=1), x = 0.48),
+             left = textGrob("Depth (m)",gp=gpar(fontsize=15,font=1), rot = 90),
+             bottom = textGrob("Time",gp=gpar(fontsize=15,font=1), x = 0.45))
+dev.off()
+
+tiff("final_fish_seiche_reaction_public.tif", height = 8, width = 7, res = 150, units="in")
+grid.arrange(rudd_day,rudd_night,
+             tench_day,tench_night, 
+             wels_day ,wels_night, 
+             pike_day ,pike_night,
+             final_legend, layout_matrix = lay,
+             top = textGrob("DAY                                    NIGHT",gp=gpar(fontsize=12,font=1), x = 0.48),
+             left = textGrob("Depth (m)",gp=gpar(fontsize=15,font=1), rot = 90),
+             bottom = textGrob("Time",gp=gpar(fontsize=15,font=1), x = 0.45))
+dev.off()
+
+
+# meteodata ####
+
+meteo.datasets <- data.table(dbGetQuery(conn = con, statement = "SELECT * FROM at_macfish.meteodatasets"))
+#cumulative wind run over 30 minutes
+windrun <- data.table(dbGetQuery(conn = con, statement = "SELECT * FROM at_macfish.meteodata_view where mds_dataset_id IN (22)"))
+#mean direction of wind in degrees of azimuth
+winddirection <-data.table(dbGetQuery(conn = con, statement = "SELECT * FROM at_macfish.meteodata_view where mds_dataset_id IN (32)"))
+#mean windspeed
+windspeed <-data.table(dbGetQuery(conn = con, statement = "SELECT * FROM at_macfish.meteodata_view where mds_dataset_id IN (20)"))
+
+range(windspeed$md_timestamp_utc)
+unique(windspeed[parameter == ""]$md_timestamp_utc)
+
+wind.long <- rbind(windrun, windspeed, winddirection)
+
+
+#Prevailing wind direction (then combined with map in q gis:
+ggplot(winddirection[md_timestamp_utc > "2015-06-17 16:30:00"], aes(x = val)) +
+  geom_histogram(binwidth = 10, aes(y=..count../sum(..count..)), colour = "black", fill = "black") +
+  scale_x_continuous("", limits=c(0,360),
+                     breaks=seq(0,360-1,by=45),
+                     labels=c("N","N-E","E","S-E","S","S-W","W","N-W")) +
+  scale_y_continuous( limits=c(0, 0.15), breaks = c(0, 0.05, 0.1, 0.15))+
+  coord_polar()+
+  labs(y = "Proportion", x =  "Latitude")+
+  theme(text = element_text(size = 25),
+        axis.text = element_text(size = 25, colour = "black"),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black", size = 1.5))+
+  ggsave("wind_direction.tiff", device = "tiff", width = 8,height = 8, units = "in",dpi = 150)
+
+# plot thermocline depth
+gp1 <- ggplot(data = thermocline[th_timestamp_utc > "2015-07-13 00:00:00" & th_timestamp_utc < "2015-07-14 23:59:59" & lp_pos_name %in% c( "West", "East") , ], 
+              mapping = aes(x = th_timestamp_utc , y = th_depth, col = lp_pos_name))+geom_line()+guides(col = F)
+gp1 
+# plot windspeed
+gp2<-ggplot(data = windspeed[md_timestamp_utc > "2015-07-12 00:00:00" & md_timestamp_utc < "2015-07-15 23:59:59"], aes(x= md_timestamp_utc, y = val))+geom_line()
+gp2
+#arrange
+require(gridExtra)
+grid.arrange(gp1, gp2)
+
+start_time <- "2015-07-04 00:00:00"  
+end_time <- "2015-07-24 23:59:59" 
+
+# plot thermocline depth
+gp1 <- ggplot(data = thermocline[th_timestamp_utc > start_time  & th_timestamp_utc < end_time & lp_pos_name %in% c( "West" , "East"), ], 
+              mapping = aes(x = th_timestamp_utc , y = th_depth, col = lp_pos_name))+geom_line()+
+  ylim(max(thermocline[th_timestamp_utc > start_time  & th_timestamp_utc < end_time & lp_pos_name %in% c( "West"), ]$th_depth), min(thermocline[th_timestamp_utc > start_time  & th_timestamp_utc < end_time & lp_pos_name %in% c( "West") , ]$th_depth))+
+  ylab("Th. depth(m)")+
+  geom_smooth(method = "lm", formula = y~x, col = "black")+
+  theme(panel.background = element_blank(),
+        panel.border = element_rect(fill = NA, color = "black", size = 0.5),
+        legend.position = c(0.9,0.15),
+        legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        text = element_text(size = 15),
+        legend.key=element_blank(),
+        plot.title = element_text(size = 10, face = "bold"))
+
+gp1 
+# plot windspeed
+gp2<-ggplot(data = wind.long[parameter == "windrun" & md_timestamp_utc > start_time  & md_timestamp_utc < end_time], aes(x= md_timestamp_utc, y = val))+
+  geom_line()+
+  labs(x = "date", y = "Wind sp.(m/sec)")+
+  theme(panel.background = element_blank(),
+        panel.border = element_rect(fill = NA, color = "black", size = 0.5),
+        legend.position = 'none',
+        text = element_text(size = 15),
+        plot.title = element_text(size = 10, face = "bold"))
+gp2
+
+# wind direction is ready here 
+gp3 <- ggplot(data = wind.long[parameter == "winddirection" & md_timestamp_utc > start_time  & md_timestamp_utc < end_time], aes(x= md_timestamp_utc, y = val))+
+  geom_line()+
+  labs(x = "date", y = "Wind dir.(°)")+
+  theme(panel.background = element_blank(),
+        panel.border = element_rect(fill = NA, color = "black", size = 0.5),
+        legend.position = 'none',
+        text = element_text(size = 15),
+        plot.title = element_text(size = 10, face = "bold"))
+gp3
+
+
+# save graphs
+jpeg("wind_thcline_move.jpg", height = 6, width = 8, res = 150, units="in")
+ggarrange(gp1, gp2,gp3, ncol = 1, nrow = 3,  align = "v")
+dev.off()
+
