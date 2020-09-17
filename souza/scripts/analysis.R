@@ -4,6 +4,9 @@ source("scripts/libraries.R")
 #Set parameters
 source("scripts/parameters.R")
 
+#Set functions
+source("scripts/fishecu_general_functions.R")
+
 #Load data - approx 7 min
 source("scripts/data_loading.R")
 
