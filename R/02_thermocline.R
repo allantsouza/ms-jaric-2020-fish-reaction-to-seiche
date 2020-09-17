@@ -26,7 +26,10 @@ ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") & in
        mapping = aes(x = interval,
                      y = temperature_start,
                      col = location)) +
-  geom_point(shape = ".") 
+  geom_point(shape = ".") +
+  ylab("Temperature") +
+  xlab("Date") +
+  ggtitle("Top of the thermocline over time")
 
 
 # Investigation why some thermocline starts at 12 Celsius
@@ -40,8 +43,7 @@ ggplot(data = wierd_profile,
   scale_y_reverse()+
   geom_point() +
   geom_line(data =  wierd_profile_smooth) + 
-  geom_point(data = wierd_profile_smooth[], aes(group = rleid(is_thermocline), col = is_thermocline), alpha=0.3) +
-  theme_minimal()
+  geom_point(data = wierd_profile_smooth[], aes(group = rleid(is_thermocline), col = is_thermocline), alpha=0.3)
 
 
 write_csv(thermocline, path = here("data","products", "thermocline_slope.csv"))
@@ -81,7 +83,7 @@ thermocline[, tcrit := roll_time_window(x = temperature_crit,
 #melt so the roll is in long format
 ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") ],
        mapping = aes(x = interval,
-                     y = tstart,
+                     y = tcenter,
                      col = location)) +
   geom_point(shape = ".")
 
