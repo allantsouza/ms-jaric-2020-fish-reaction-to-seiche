@@ -11,7 +11,7 @@
 
 compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_res = 0.1){
   #order the vectors in case it is not ordered
-  if(length(depth) < 2) return(NULL)# do not return null - exception better
+  if(length(depth) < 3) stop("Cannot compute thermocline with less than 3 points") 
   if(!all(depth == cummax(depth))){
     depth <- depth[order(depth)]
     temperature <- temperature[order(depth)]
