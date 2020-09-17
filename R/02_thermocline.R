@@ -2,6 +2,11 @@
 
 #finding thermocline ####
 #hobo_data[, rho := 999,974950 *(1 - (temperature+288.9414)/(508929.2*(temperature+68.12963))*(temperature-3.9863)^2)]
+
+
+hobo_data <- data.table(load_hobo_data())
+temperatures_monotonic <- data.table(load_temperature_data())
+
 a1 <- -3.983035
 a2 <- 301.797
 a3 <- 522528.9

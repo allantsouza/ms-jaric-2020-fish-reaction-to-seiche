@@ -38,7 +38,7 @@ wind[, windproj := projectWindVector(angleOfLine = 1.72522528309502, distance = 
 wind[, windproj.abs := abs(windproj)]
 ###SHINY PLOTTING ####
 
-  time_range <- range(shift_dataset$interval)
+  time_range <- range(thermocline$interval)
   gp1 <- ggplot(data = th_m[therm_part == "center" & step_order == 1 ], 
                 mapping = aes(x = interval , y = deviation , col = location))+
     geom_line() +

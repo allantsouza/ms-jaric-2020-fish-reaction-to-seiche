@@ -10,9 +10,10 @@ library(here)
 
 
 # Global variables -------------------------------------------------------------
-DATE_RANGE <- c("2015-06-18","2015-07-25")
 
-PAR_THERMOCLINE_SLOPE <- 2
+DATE_RANGE <- c("2015-07-05","2015-07-25")
+
+PAR_THERMOCLINE_SLOPE <- 1
 
 #Identification of fast Seiche shift periods - "shift speed" has to be larger than a threshold speed (PAR_SHIFT_HEIGHT, which is X meters per hour)
 PAR_SHIFT_SPEED <- 0.5

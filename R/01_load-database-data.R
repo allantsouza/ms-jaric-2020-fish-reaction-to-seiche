@@ -84,7 +84,7 @@ temperatures[cum.min.temp < temperature, temperature := cum.min.temp]
 #since you are interested in last occurence of that temperature, you can exclude those above
 temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location, ts, temperature)]
 
-write_csv(x = wind_data, path = here("data", "raw", "temperature_data.csv"))
+write_csv(x = temperatures_monotonic , path = here("data", "raw", "temperature_data.csv"))
 
 
 
