@@ -7,6 +7,8 @@ library(lubridate)
 library(RPostgreSQL)
 library(data.table)
 library(here)
+
+
 # Global variables -------------------------------------------------------------
 DATE_RANGE <- c("2015-06-18","2015-07-25")
 
@@ -29,3 +31,7 @@ con <- dbConnect(drv = PostgreSQL(),
 
 # global ggplot theme
 theme_set(theme_minimal())
+
+
+# Detections --------------------------------------------------------------
+

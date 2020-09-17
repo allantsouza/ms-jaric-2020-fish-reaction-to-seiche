@@ -1,6 +1,8 @@
 # Loading all environmental data from database
 
-# HOBO data -----------------------------------------------------------
+
+# Hobo data ---------------------------------------------------------------
+
 sql_query_hobo_data <- paste0(
   "SELECT
     a.hl_logger_sn loggerSN,
@@ -53,7 +55,11 @@ hobo_data[, order := 1:.N, by =.(location, as.numeric(interval))]
 write_csv(x = hobo_data, path = here("data", "raw", "hobo_data.csv"))
 
 
-# Interpolated temperatures
+
+
+
+# Interpolated temperatures -----------------------------------------------
+
 # load interpolated temperatures from the desired range of Dates
 # TODO: interpolate hobo_data locally so it is clear how that was done
 sql_query_temperatures <- paste0(
@@ -81,7 +87,8 @@ temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location
 write_csv(x = wind_data, path = here("data", "raw", "temperature_data.csv"))
 
 
-# Spatial objects -----------------------------------------------------------
+
+# Spatial objects ---------------------------------------------------------
 
 sql_query_loggerpos <- "
 SELECT 
@@ -96,7 +103,9 @@ WHERE lt_lake = 'Chabarovice'
 logger_positions <- data.table(dbGetQuery(con, sql_query_loggerpos, stringsAsFactors = F))
 
 
-# Wind data
+
+# Wind data ---------------------------------------------------------------
+
 #cumulative wind run over 30 minutes
 windrun <- data.table(dbGetQuery(conn = con, statement = "SELECT * FROM at_macfish.meteodata_view where mds_dataset_id IN (22)"))
 #mean direction of wind in degrees of azimuth
@@ -111,3 +120,6 @@ wind_data <- rename(wind_data,
        dataset_id = mds_dataset_id)
 
 write_csv(x = wind_data, path = here("data", "raw", "wind_data.csv"))
+
+
+
