@@ -36,3 +36,5 @@ theme_set(theme_minimal())
 
 # Detections --------------------------------------------------------------
 
+# All positions are projected on lake axis but to keep as much detections as possible, take also detections which had closest position X seconds away
+PAR_DET_POS_TIMEDIFF <- 30*60

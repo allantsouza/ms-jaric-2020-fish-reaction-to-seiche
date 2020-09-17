@@ -123,3 +123,50 @@ write_csv(x = wind_data, path = here("data", "raw", "wind_data.csv"))
 
 
 
+# Detection data ----------------------------------------------------------
+tag_sns <- c("T412093","T413151","T412079","T412073","T412087","T412074","T412075","T412082","T413149","T412078","T412085","T412077","T412084","T412076","T412092")
+tag_sn <- tag_sns[1]
+sql_query_detections <-paste("
+WITH posth AS (
+SELECT th.*, lake, up_tag_sn, up_disttoshore, up_timestamp_utc FROM 
+  (SELECT up_tag_sn, up_id, up_disttoshore, up_timestamp_utc, up_depth, up_lake lake 
+   FROM at_macfish.umap_pos_powfilter 
+   WHERE up_validpos AND
+         fishvalid AND
+         up_tag_sn ='", tag_id, "' AND
+         up_timestamp_utc BETWEEN '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "'
+  ) as pos 
+  INNER JOIN (
+   SELECT * 
+  FROM at_macfish.umap_pos_thermocline 
+  WHERE pth_step_order = 1 AND
+  pth_degree_per_meter = ", PAR_THERMOCLINE_SLOPE, " AND
+  pth_thermpart IN ('", paste(c("center","start","end"), collapse = "','"),"')
+  ) as th
+ON pos.up_id = th.up_id)
+
+SELECT up_tag_sn as tag_sn,
+       up_disttoshore as pos_disttoshore,
+       dd_depth as det_depth,
+       dd_timestamp_utc as det_ts,
+       up_timestamp_utc as pos_ts,
+       pth_thermocline_temperature thermocline_temperature,
+       pth_thermpart therm_part,
+       pth_distance_from_loggerpos1,
+       pth_degree_per_meter
+FROM at_macfish.detsdepth dd 
+INNER JOIN (
+ SELECT posth.*, b.dd_id 
+ FROM posth 
+ INNER JOIN at_macfish.detsdepth_to_umap_pos b 
+ ON b.up_id = posth.up_id
+ ) as pos 
+ON pos.dd_id = dd.dd_id;", sep = "")
+
+detections <- data.table(dbGetQuery(con, sql_query_detections, stringsAsFactors = F))
+
+detections[, det_pos_timediff := abs(as.numeric(difftime(ts_det, ts_pos, units = "secs")))]
+
+#remove detections which are further than X secs from closest position
+detections <- detections[det_pos_timediff < excl_dets_further_than_pos]
+
