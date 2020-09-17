@@ -109,19 +109,21 @@ compute_thermocline_dplyr <- function(depth, temperature, diff_threshold = 2, de
 #' @param times sorted time vector - same length as x
 #' @param span width of window in seconds 
 roll_time_window <- function(x, times, span, FUN){
-x_out <- vector(mode = class(x), length = length(x))
-x_out[1:length(x_out)] <- NA
-if(is.unsorted(times)){
-  x <- x[order(times)]
-  times <- times[order(times)]
+  x_out <- vector(mode = class(x), length = length(x))
+  x_out[1:length(x_out)] <- NA
+  if(is.unsorted(times)){
+    x <- x[order(times)]
+    times <- times[order(times)]
+  }
+  FUN <- match.fun(FUN)
+  times_minus <- times - span
+  times_plus <- times + span
+  for(i in 1:length(x_out)){
+    x_out[i] <- FUN(x[which(times > times_minus[i] & times < times_plus[i])])
+  }
+  return(x_out)
 }
-FUN <- match.fun(FUN)
-times_minus <- times - span
-times_plus <- times + span
-for(i in 1:length(x_out)){
-  x_out[i] <- FUN(x[which(times > times_minus[i] & times < times_plus[i])])
 }
-return(x_out)
 
 
 #' Smooth temperature profile
