@@ -50,6 +50,58 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
   return(th_steps.agg)
 }
 
+compute_thermocline_dplyr <- function(depth, temperature, diff_threshold = 2, depth_res = 0.1){
+  # order the vectors in case it is not ordered
+  if(length(depth) < 3) stop("Cannot compute thermocline with less than 3 points") 
+  if(!all(depth == cummax(depth))){
+    depth <- depth[order(depth)]
+    temperature <- temperature[order(depth)]
+  }
+  # create sequence of new depths
+  depths_new <- seq(floor(min(depth)), ceiling(max(depth)), depth_res)
+  # smooth the temperature profile
+  temperature_model <- splinefun(x = depth, y = temperature, method = "monoH.FC", ties = mean)
+  temperatures_new <- temperature_model(depths_new)
+  # compute derivations in each step (decrease of temperature per meter)
+  temperature_diff <- c(diff(temperatures_new)/depth_res, 0)
+  is_thermocline <- -diff_threshold > temperature_diff
+  # add also ending point from which the thermocline was not with diff.threshodl slope
+  is_thermocline[shift(is_thermocline, n = 1, fill = F, type = "lag") == T] <- T
+  
+  if(!any(is_thermocline)){
+    result <- tibble(step_order = 1,
+                     depth_start = as.numeric(NA),
+                     depth_end = as.numeric(NA),
+                     temperature_start = as.numeric(NA),
+                     temperature_end = as.numeric(NA),
+                     depth_crit = as.numeric(NA),
+                     temperature_crit = as.numeric(NA))
+  }else{
+    # add group when the validity of condition changed
+    thermocline_steps <- rleid(is_thermocline)
+    # Start with N. 1 at from bottom up
+    
+    thermoclines_tb <- dplyr::tibble(
+      step_order = rleid(thermocline_steps[is_thermocline]),
+      temperature = temperatures_new[is_thermocline],
+      depth = depths_new[is_thermocline],
+      temperature_diff = temperature_diff[is_thermocline]
+    ) %>% mutate(step_order = (max(step_order)- step_order)+1)
+    
+    # aggregate
+    result <- thermoclines_tb %>%
+      group_by(step_order) %>% 
+      summarize(depth_start = min(depth),
+                depth_end = max(depth),
+                temperature_start = temperature[depth == min(depth)][1],
+                temperature_end = temperature[depth == max(depth)][1],
+                depth_crit = depth[temperature_diff == min(temperature_diff)][1],
+                temperature_crit = temperature[temperature_diff == min(temperature_diff)][1],
+                .groups = "keep")
+    
+  }
+  return(as.data.table(result))
+}
 
 #' Apply rolling function by time span
 #' 
