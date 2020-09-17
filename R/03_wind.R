@@ -60,13 +60,8 @@ wind[, windproj.abs := abs(windproj)]
   g1 <- ggplotGrob(gp1)
   g2 <- ggplotGrob(gp2)
   g3 <- ggplotGrob(gp3)
-  g <- rbind(g1, g2, g3, size = "first")
-  plot(g)
-
-  library(grid)
   grid.newpage()
   grid.draw(rbind(g1, g2, g3, size = "last"))
   
 # Data export --------------------------------------
 # TODO:  wind strength (mean, median, range - split into day and night)
-
