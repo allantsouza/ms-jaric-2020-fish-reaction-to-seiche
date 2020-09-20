@@ -4,10 +4,16 @@
 .Ruserdata
 .Renviron
 
+!**/README.md
+
 # data products are derived from raw data
 data/products/*
-!data/products/README.md
+
+# data pulled from database
+data/raw/db/*
 
 # outputs are produced by scripts
 outputs/*
-!outputs/README.md
+
+# keep all readme files
+!**/README.md
