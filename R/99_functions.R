@@ -221,4 +221,17 @@ get_nighttime_polygons <- function(x, lat = 49.5765639, lon = 14.6637706){
 }
 
 
+#' For given positions, get distance of their projections from point zero (one end of lake axis/shore)
+#' 
+#' @param positions spatial points of positions
+#' @param lake_axis spatial line to project to
+#' @param point_zero spatial point on one side of the lake to measure the distance from
+#' @return numeric vector of distances for each given position
+compute_distance_from_point_zero <- function(positions, lake_axis, point_zero){
+  nearest_points <- st_nearest_points(positions, lake_axis) %>% st_cast("POINT")
+  # previous step returned both starts and ends. Pick only points on axis
+  projected_positions <- nearest_points[seq(2, length(nearest_points), 2)]
+  as.numeric(st_distance(projected_positions, point_zero))
+}
+
 
