@@ -235,3 +235,13 @@ compute_distance_from_point_zero <- function(positions, lake_axis, point_zero){
 }
 
 
+
+#' Intepolation of thermocline value in an arbitrary distance.
+#' @param logger_distances vector of logger distances form point zero
+#' @param logger_values vector of values measured on loggers
+#' @param detection_distances vector of detection distances from point zero
+#' @details If the length of logger_values and detection_distances is equal, the values are assumed to be matching.
+#' @return vector of values at place of detections
+interpolate_thermocline_value_linear <- function(logger_distances, logger_values, detection_distances){
+  approx(x = logger_distances, y = logger_values, xout = detection_distances, rule = 2)$y
+}
