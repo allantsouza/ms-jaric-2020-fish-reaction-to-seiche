@@ -1,7 +1,10 @@
 # Script computing thermocline
 
-#finding thermocline ####
+
+
+# Finding thermocline -----------------------------------------------------
 #hobo_data[, rho := 999,974950 *(1 - (temperature+288.9414)/(508929.2*(temperature+68.12963))*(temperature-3.9863)^2)]
+
 
 
 hobo_data <- data.table(load_hobo_data())
@@ -12,14 +15,17 @@ a2 <- 301.797
 a3 <- 522528.9
 a4 <- 69.34881
 a5 <- 999.974950
-hobo_data[, rho := a5 * (1 - ((((a1 + temperature)^2) * (a2 + temperature))/(a3*(temperature+a4))))] #http://metgen.pagesperso-orange.fr/metrologieen19.htm
+hobo_data[, water_density := a5 * (1 - ((((a1 + temperature)^2) * (a2 + temperature))/(a3*(temperature+a4))))] #http://metgen.pagesperso-orange.fr/metrologieen19.htm
 
 #remove intervals were there is no stratification (difference in temperature on surface and bottom < 2) or there is not enough logs (<13)
 setkey(hobo_data, location, interval, depth)
 hobo_data[, out := .N < 13 | mean(temperature[2:4])- mean(tail(temperature, 2)) < 2, by =.(location, interval)]
 hobo_data_therm <- hobo_data[out == F]
 
-# compute thermocline -------------------------------------------------------------------------------------
+
+
+# Compute thermocline -----------------------------------------------------
+
 thermocline <- hobo_data_therm[, compute_thermocline(depth = depth,
                                                      temperature = temperature,
                                                      diff_threshold = PAR_THERMOCLINE_SLOPE,
@@ -53,7 +59,9 @@ ggplot(data = wierd_profile,
 
 write_csv(thermocline, path = here("data","products", "thermocline_slope.csv"))
 
-# Get seasonal thermocline --------------------------------------------------------------------------------
+
+
+# Seasonal thermocline ----------------------------------------------------
 # calculation of mean thermocline temperature for every single day (mean from both lines, calculated as diffrence between up_depth and down_depth)
 setkey(thermocline, location, step_order, slope, interval)
 window_size <- 14*86400
@@ -63,6 +71,8 @@ thermocline[, tcenter := roll_time_window(x = (temperature_start+temperature_end
                                        span = window_size,
                                        FUN = function(x) median(x, na.rm = T)),
             by = .(location, step_order, slope)]
+
+
 
 # tstart
 thermocline[, tstart := roll_time_window(x = temperature_start,
@@ -85,7 +95,7 @@ thermocline[, tcrit := roll_time_window(x = temperature_crit,
             by = .(location, step_order, slope)]
 
 
-#melt so the roll is in long format
+# melt so the roll is in long format
 ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") ],
        mapping = aes(x = interval,
                      y = tcenter,
@@ -120,7 +130,9 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
   ylab("Temperature (moving median)")
 
 
-## Get depth for thermocline ####
+
+# Get depth of thermocline ------------------------------------------------
+
 # Previous code computed lake-wide temperature of thermocline for each 5min interval
 # Now get depth of occurence of that temperature
 thermocline_full[, ':=' (temperature = temperature_lake_mean)]
@@ -204,8 +216,10 @@ ggplot(thermocline_data[therm_part == "center"], aes(x = balanced_therm_depth, y
   geom_point() + 
   facet_wrap(~location)
 
-ggplot(thermocline_data[therm_part == "center"], aes(x = interval, y = thickness, col = location)) + 
+ggplot(thermocline_data[therm_part == "center",], aes(x = interval, y = thickness, col = location)) + 
 geom_line()
 
 ggplot(thermocline_data[therm_part == "center" ], aes(x = interval, y = deviation, col = location)) + 
 geom_line()
+
+# TODO: deviation and thickness has different frequency!

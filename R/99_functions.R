@@ -126,15 +126,15 @@ roll_time_window <- function(x, times, span, FUN){
 
 #' Functions loading data
 load_hobo_data <- function(){
-  read_csv(here("data", "raw", "hobo_data.csv"))
+  read_csv(here("data", "raw", "db", "hobo_data.csv"))
 }
 
 load_temperature_data <- function(){
-  read_csv(here("data", "raw", "temperature_data.csv"))
+  read_csv(here("data", "raw", "db", "temperature_data.csv"))
 }
 
 load_wind_data <- function(){
-  read_csv(here("data", "raw", "wind_data.csv"))
+  read_csv(here("data", "raw", "db", "wind_data.csv"))
 }
 
 #' Smooth temperature profile
@@ -221,4 +221,27 @@ get_nighttime_polygons <- function(x, lat = 49.5765639, lon = 14.6637706){
 }
 
 
+#' For given positions, get distance of their projections from point zero (one end of lake axis/shore)
+#' 
+#' @param positions spatial points of positions
+#' @param lake_axis spatial line to project to
+#' @param point_zero spatial point on one side of the lake to measure the distance from
+#' @return numeric vector of distances for each given position
+compute_distance_from_point_zero <- function(positions, lake_axis, point_zero){
+  nearest_points <- st_nearest_points(positions, lake_axis) %>% st_cast("POINT")
+  # previous step returned both starts and ends. Pick only points on axis
+  projected_positions <- nearest_points[seq(2, length(nearest_points), 2)]
+  as.numeric(st_distance(projected_positions, point_zero))
+}
 
+
+
+#' Intepolation of thermocline value in an arbitrary distance.
+#' @param logger_distances vector of logger distances form point zero
+#' @param logger_values vector of values measured on loggers
+#' @param detection_distances vector of detection distances from point zero
+#' @details If the length of logger_values and detection_distances is equal, the values are assumed to be matching.
+#' @return vector of values at place of detections
+interpolate_thermocline_value_linear <- function(logger_distances, logger_values, detection_distances){
+  approx(x = logger_distances, y = logger_values, xout = detection_distances, rule = 2)$y
+}

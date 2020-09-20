@@ -7,6 +7,8 @@ library(lubridate)
 library(RPostgreSQL)
 library(data.table)
 library(here)
+library(sf)
+
 
 
 # Global variables -------------------------------------------------------------
