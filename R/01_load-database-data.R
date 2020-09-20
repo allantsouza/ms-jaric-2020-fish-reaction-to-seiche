@@ -52,7 +52,7 @@ hobo_data$interval <- lubridate::round_date(hobo_data$ts, "5 minutes")
 setkey(hobo_data, location, depth)
 hobo_data[, order := 1:.N, by =.(location, as.numeric(interval))]
 
-write_csv(x = hobo_data, path = here("data", "raw", "hobo_data.csv"))
+write_csv(x = hobo_data, path = here("data", "raw", "db", "hobo_data.csv"))
 
 
 
@@ -84,7 +84,7 @@ temperatures[cum.min.temp < temperature, temperature := cum.min.temp]
 #since you are interested in last occurence of that temperature, you can exclude those above
 temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location, ts, temperature)]
 
-write_csv(x = temperatures_monotonic , path = here("data", "raw", "temperature_data.csv"))
+write_csv(x = temperatures_monotonic , path = here("data", "raw", "db", "temperature_data.csv"))
 
 
 
@@ -96,11 +96,19 @@ SELECT
   st_x(lp_geom) easting,
   st_y(lp_geom) northing,
   lt_lake lake,
+  lp_geom,
   lp_pos_order location_order
 FROM at_macfish.loggerpos 
 WHERE lt_lake = 'Chabarovice'
 "
-logger_positions <- data.table(dbGetQuery(con, sql_query_loggerpos, stringsAsFactors = F))
+
+st_read(con, query = sql_query_loggerpos) %>% 
+  st_write("data/raw/db/logger_positions.shp")
+
+
+# Lake shape polygon
+st_read(con, query = "SELECT lt_shoreline_pol_smooth FROM at_macfish.laketable WHERE lt_lake = 'Chabarovice'") %>%
+  st_write(obj = lake_shp, dsn = "data/raw/db/lake_shape.shp" )
 
 
 
@@ -119,7 +127,7 @@ wind_data <- rename(wind_data,
        ts = md_timestamp_utc,
        dataset_id = mds_dataset_id)
 
-write_csv(x = wind_data, path = here("data", "raw", "wind_data.csv"))
+write_csv(x = wind_data, path = here("data", "raw", "db", "wind_data.csv"))
 
 
 
