@@ -46,7 +46,7 @@ ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") & in
 # Investigation why some thermocline starts at 12 Celsius
 wierd_interval <- thermocline[temperature_start < 12 & step_order == 1 & location %in% c("East") & interval %between% c("2015-07-13", "2015-07-18"),][6]
 wierd_profile <- hobo_data_therm[interval == wierd_interval$interval & location == wierd_interval$location]
-wierd_profile_smooth <- data.frame(smooth_temperature_profile(depth = wierd_profile$depth, temperature = wierd_profile$temperature))
+wierd_profile_smooth <- data.frame(interpolate_temperature_profile(depth = wierd_profile$depth, temperature = wierd_profile$temperature))
 wierd_profile_smooth$is_thermocline <- wierd_profile_smooth$slope < -PAR_THERMOCLINE_SLOPE
 ggplot(data = wierd_profile,
        mapping = aes(x = temperature,
@@ -177,11 +177,11 @@ setkey(thermocline_location, location, interval)
 therm_lake <- thermocline_location[,.(lake_therm_depth = mean(depth)), by = .(lake, interval, step_order, slope, therm_part)]
 # smooth mean depth by therm_bal_ws days moving window
 setkey(therm_lake,  interval)
-therm_lake[, balanced_therm_depth := roll_time_window(span = PAR_THERMOCLINE_BALACE, FUN = mean, x = lake_therm_depth, times = interval),
+therm_lake[, lake_therm_depth_smoothed := roll_time_window(span = PAR_THERMOCLINE_BALACE, FUN = mean, x = lake_therm_depth, times = interval),
            by = .(lake, step_order, slope, therm_part)]
 therm_lake[, "lake_therm_depth" := NULL]
 
-ggplot(therm_lake[step_order == 1], aes(x = interval, y = balanced_therm_depth , col = therm_part))+
+ggplot(therm_lake[step_order == 1], aes(x = interval, y = lake_therm_depth_smoothed, col = therm_part))+
   geom_point(shape = ".") +
   geom_line() + 
   xlab("Date") +
@@ -193,9 +193,9 @@ ggplot(therm_lake[step_order == 1], aes(x = interval, y = balanced_therm_depth ,
 
 
 # Get deviation from balanced depth
-th_deviation <- merge(thermocline_location, therm_lake[therm_part == "center", .(lake, interval, slope, step_order, balanced_therm_depth)],
-               by = c("lake", "interval",  "step_order", "slope"))
-th_deviation[, deviation := balanced_therm_depth - depth]
+th_deviation <- merge(thermocline_location, therm_lake[, .(lake, interval, slope, step_order, therm_part, lake_therm_depth_smoothed)],
+               by = c("lake", "interval",  "step_order", "slope", "therm_part"))
+th_deviation[, deviation := lake_therm_depth_smoothed - depth]
 
 
 # Compute thermocline thickness
@@ -212,7 +212,7 @@ ggplot(thermocline_data[abs(deviation) > 0.7], aes(x = deviation, y = thickness,
   geom_point() + 
   geom_smooth(method = "lm")
 
-ggplot(thermocline_data[therm_part == "center"], aes(x = balanced_therm_depth, y = depth, col = location)) +
+ggplot(thermocline_data[therm_part == "center"], aes(x = lake_therm_depth_smoothed, y = depth, col = location)) +
   geom_point() + 
   facet_wrap(~location)
 
