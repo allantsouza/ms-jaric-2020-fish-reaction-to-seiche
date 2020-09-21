@@ -1,16 +1,26 @@
 # calculation of mean thermocline temperature for every single day (mean from both lines, calculated as diffrence between up_depth and down_depth)
-thermocline <- thermocline_location
+thermocline <- here("data/products/thermocline_data.csv") %>%
+  read_csv() %>%
+  filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE & therm_part == "center")
+
+wind_data <- read_csv(here("data", "raw", "db", "wind_data.csv"))
+
+wind_run <- wind_data %>% filter(parameter == "wind_run")
+
+wind_direction <- wind_data %>% filter(parameter == "winddirection")
+
+wind_speed <- wind_data %>% filter(parameter == "windspeed")
 
 
-ggplot(wind.long, aes(x = md_timestamp_utc, y = val)) + 
+ggplot(wind_data, aes(x = md_timestamp_utc, y = val)) + 
   geom_point() +
   facet_wrap(~parameter, ncol = 1, scales = "free_y")
 
-ggplot(wind.long, aes(x = md_timestamp_utc, y = val)) +
+ggplot(wind_data, aes(x = md_timestamp_utc, y = val)) +
   geom_point() +
   facet_wrap(~parameter, ncol = 1, scales = "free_y")
 
-ggplot(winddirection, aes(x = val)) +
+ggplot(wind_direction, aes(x = val)) +
   geom_histogram(binwidth = 5) +
   coord_polar() 
 
@@ -27,7 +37,7 @@ projectWindVector <- function(angleOfLine, distance, direction){
   return(res)
 }
 
-wind <- merge(windspeed[, .(md_timestamp_utc, speed  = val)], winddirection[, .(md_timestamp_utc, direction  = val)])
+wind <- merge(wind_speed[, .(md_timestamp_utc, speed  = val)], wind_direction[, .(md_timestamp_utc, direction  = val)])
 #azimuth of line is
 #1.72522528309502 rad
 #you can convert degrees into radian by
@@ -39,8 +49,9 @@ wind[, windproj.abs := abs(windproj)]
 ###SHINY PLOTTING ####
 
   time_range <- range(thermocline$interval)
-  gp1 <- ggplot(data = th_m[therm_part == "center" & step_order == 1 ], 
-                mapping = aes(x = interval , y = deviation , col = location))+
+  gp1 <- thermocline %>%
+    filter(therm_part == "center" & step_order == 1) %>%
+    ggplot(mapping = aes(x = interval , y = deviation, col = location))+
     geom_line() +
     guides(col = F) +
     xlab("Date") + 
@@ -48,15 +59,20 @@ wind[, windproj.abs := abs(windproj)]
     theme(axis.title.x = element_blank(), axis.text.x = element_blank())
   
 
-  gp2 <- ggplot(data = wind[md_timestamp_utc %between% time_range], aes(x = md_timestamp_utc, y = speed)) + 
+  gp2 <- wind_speed %>%
+    filter(md_timestamp_utc %between% time_range) %>%
+    ggplot(aes(x = md_timestamp_utc, y = val)) + 
     geom_line() +
     xlab("Date") + ylab("Wind speed (m/s)")+  theme_minimal() + 
     theme(axis.title.x = element_blank(), axis.text.x = element_blank())
   
-  gp3 <- ggplot(data = wind[md_timestamp_utc %between% time_range], aes(x = md_timestamp_utc, y = direction)) + 
+  gp3 <- wind_direction %>%
+    filter(md_timestamp_utc %between% time_range) %>%
+    ggplot(aes(x = md_timestamp_utc, y = val)) + 
     geom_line() +
     scale_y_continuous( expand = c(0, 0), breaks = c(0, 90, 180, 270, 360), labels = c("N", "E", "S", "W", "N"), limits = c(0,360)) +
-    xlab("Date") + ylab("Wind direction")  +  theme_minimal() 
+    xlab("Date") + ylab("Wind direction")  +  theme_minimal()
+  
   g1 <- ggplotGrob(gp1)
   g2 <- ggplotGrob(gp2)
   g3 <- ggplotGrob(gp3)
