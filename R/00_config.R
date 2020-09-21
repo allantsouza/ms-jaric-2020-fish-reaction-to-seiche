@@ -13,7 +13,7 @@ library(sf)
 
 # Global variables -------------------------------------------------------------
 
-DATE_RANGE <- c("2015-07-05","2015-07-25")
+DATE_RANGE <- c("2015-06-16","2015-10-15")
 
 PAR_THERMOCLINE_SLOPE <- 1
 
