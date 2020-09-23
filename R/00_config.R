@@ -22,8 +22,8 @@ PAR_THERMOCLINE_SLOPE <- 1
 PAR_SHIFT_SPEED <- 0.5
 
 #Balance depth of thermocline
-#rolling window width for smoothing thermocline balance
-PAR_THERMOCLINE_BALACE <- 60*60*24*4
+# rolling window width for smoothing thermocline to get lake-wide thermocline depth (moment without seiche)
+PAR_THERMOCLINE_SMOOTH <- 60*60*24*4
 
 # TODO connection to database
 con <- dbConnect(drv = PostgreSQL(), 

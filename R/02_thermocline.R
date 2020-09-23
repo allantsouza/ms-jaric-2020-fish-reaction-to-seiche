@@ -62,7 +62,7 @@ write_csv(thermocline, path = here("data","products", "thermocline_slope.csv"))
 
 
 # Seasonal thermocline ----------------------------------------------------
-# calculation of mean thermocline temperature for every single day (mean from both lines, calculated as diffrence between up_depth and down_depth)
+# calculation of mean thermocline temperature
 setkey(thermocline, location, step_order, slope, interval)
 window_size <- 14*86400
 # tcenter
@@ -106,7 +106,7 @@ roll_cols <- c("tcenter", "tstart", "tend", "tcrit")
 thermocline_full <- melt(thermocline,
                          id.vars = c("lake", "location", "interval", "step_order", "slope"),
                          variable.name = "therm_part",
-                         value.name = "temperature_smooth",
+                         value.name = "temperature_smoothed",
                          measure.vars = roll_cols)
 
 #TODO: overview of gaps in seconds - should be 0! or interpolate otherwise to have full dataset
@@ -117,12 +117,12 @@ thermocline_full[step_order == 1,
 
 # TODO: this is very important step! Getting one temperature for the whole lake!
 # calculating means of the two locations for each time
-thermocline_full[, temperature_lake_mean := mean(temperature_smooth), by = .(lake, interval, step_order, slope, therm_part)]
+thermocline_full[, lake_therm_temperature_smoothed := mean(temperature_smoothed), by = .(lake, interval, step_order, slope, therm_part)]
 #exclusion of periods with no thermocline
-thermocline_full <- thermocline_full[!is.na(temperature_smooth)]
+thermocline_full <- thermocline_full[!is.na(temperature_smoothed)]
 ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")],
        mapping = aes(x = interval,
-                     y = temperature_smooth,
+                     y = lake_therm_temperature_smoothed,
                      col = therm_part,
                      linetype  = location)) +
   geom_line() +
@@ -135,16 +135,18 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
 
 # Previous code computed lake-wide temperature of thermocline for each 5min interval
 # Now get depth of occurence of that temperature
-thermocline_full[, ':=' (temperature = temperature_lake_mean)]
-temperatures_monotonic[, ':=' (interval = ts)]
-setkey(thermocline_full, location, interval, temperature)
-setkey(temperatures_monotonic, location, interval, temperature)
-thermocline_temperatures_rolled <- temperatures_monotonic[thermocline_full,, on = c("location", "interval", "temperature"), roll = "nearest"]
+thermocline_full[, ':=' (temperature_roll = lake_therm_temperature_smoothed)]
+temperatures_monotonic[, ':=' (interval = ts, temperature_roll = temperature)]
+setkey(thermocline_full, location, interval, temperature_roll)
+setkey(temperatures_monotonic, location, interval, temperature_roll)
+thermocline_temperatures_rolled <- temperatures_monotonic[thermocline_full, , on = c("location", "interval", "temperature_roll"), roll = "nearest"]
+thermocline_temperatures_rolled[, temperature_roll := NULL]
+
 #remove joins futher that 15 minutes
 thermocline_temperatures_rolled <- thermocline_temperatures_rolled[abs(as.numeric(ts) - as.numeric(interval)) < 60*15 ]
 
 #Thermocline dynamics - PLOT 
-ggplot(data = thermocline_temperatures_rolled[!is.na(temperature) & step_order == 1 ],
+ggplot(data = thermocline_temperatures_rolled[!is.na(lake_therm_temperature_smoothed) & step_order == 1 ],
        mapping = aes(x = interval,
                      y = depth,
                      col = therm_part)) +
@@ -163,8 +165,9 @@ thermocline_location <- thermocline_temperatures_rolled[step_order == 1, .(lake,
                                                              location,
                                                              interval,
                                                              depth,
-                                                             step_order,
                                                              temperature,
+                                                             step_order,
+                                                             lake_therm_temperature_smoothed,
                                                              slope,
                                                              therm_part = sub(therm_part, pattern = "^t(.*)$", replacement = "\\1"))]
 
@@ -174,10 +177,10 @@ thermocline_location <- thermocline_temperatures_rolled[step_order == 1, .(lake,
 # Get mean depth of thermocline in the whole lake
 setkey(thermocline_location, location, interval)
 # Get mean depth of thremocline in each 5min interval
-therm_lake <- thermocline_location[,.(lake_therm_depth = mean(depth)), by = .(lake, interval, step_order, slope, therm_part)]
-# smooth mean depth by therm_bal_ws days moving window
+therm_lake <- thermocline_location[,.(lake_therm_depth = mean(depth)), by = .(lake, interval, step_order, slope, therm_part, lake_therm_temperature_smoothed)]
+# smooth mean depth by PAR_THERMOCLINE_SMOOTH days moving window
 setkey(therm_lake,  interval)
-therm_lake[, lake_therm_depth_smoothed := roll_time_window(span = PAR_THERMOCLINE_BALACE, FUN = mean, x = lake_therm_depth, times = interval),
+therm_lake[, lake_therm_depth_smoothed := roll_time_window(span = PAR_THERMOCLINE_SMOOTH, FUN = mean, x = lake_therm_depth, times = interval),
            by = .(lake, step_order, slope, therm_part)]
 therm_lake[, "lake_therm_depth" := NULL]
 
@@ -199,27 +202,53 @@ th_deviation[, deviation := lake_therm_depth_smoothed - depth]
 
 
 # Compute thermocline thickness
-thermocline_location_wide <- dcast(data = thermocline_location, lake + location + slope + interval + step_order ~ therm_part, value.var = "depth")
-thermocline_location_wide[, thickness := end - start]
+thermocline_location_wide_depth <- dcast(data = thermocline_location, lake + location + slope + interval + step_order ~ therm_part, value.var = "depth")
+thermocline_location_wide_depth[, thickness := end - start]
 
-thermocline_data <- merge(th_deviation, thermocline_location_wide[, .(lake, interval, location, step_order, slope, thickness)],
+thermocline_data_thickness <- merge(th_deviation, thermocline_location_wide_depth[, .(lake, interval, location, step_order, slope, thickness)],
                           by = c("lake", "interval", "location", "step_order", "slope"))
+
+# Compute thermocline strength
+thermocline_location_wide_temperature <- dcast(data = thermocline_location, lake + location + slope + interval + step_order ~ therm_part, value.var = "temperature")
+thermocline_location_wide_temperature[, strength := start - end]
+
+thermocline_data <- merge(thermocline_data_thickness, thermocline_location_wide_temperature[, .(lake, interval, location, step_order, slope, strength)],
+                          by = c("lake", "interval", "location", "step_order", "slope"))
+
+
 
 write_csv(x = thermocline_data, path = here("data", "products", "thermocline_data.csv"))
 
 # Overview
+
+# Deviation x Thickness
 ggplot(thermocline_data[abs(deviation) > 0.7], aes(x = deviation, y = thickness, col = location)) +
   geom_point() + 
   geom_smooth(method = "lm")
 
+# Lake therm depth vs instant depth (basically deviation)
 ggplot(thermocline_data[therm_part == "center"], aes(x = lake_therm_depth_smoothed, y = depth, col = location)) +
   geom_point() + 
   facet_wrap(~location)
 
+# Overview of thickness
 ggplot(thermocline_data[therm_part == "center",], aes(x = interval, y = thickness, col = location)) + 
 geom_line()
 
+# Overview of deviation
 ggplot(thermocline_data[therm_part == "center" ], aes(x = interval, y = deviation, col = location)) + 
 geom_line()
 
 # TODO: deviation and thickness has different frequency!
+
+# Overview of strength
+ggplot(thermocline_data[therm_part == "center",], aes(x = interval, y = strength, col = location)) + 
+  geom_line()
+
+# Strengh vs deviation - not correlated - good ;)
+ggplot(thermocline_data[therm_part == "center",], aes(x = deviation, y = strength, col = location)) + 
+  geom_point()
+
+# Thickness vs deviation - not correlated - good ;)
+ggplot(thermocline_data[therm_part == "center",], aes(x = deviation, y = thickness, col = location)) + 
+  geom_point()

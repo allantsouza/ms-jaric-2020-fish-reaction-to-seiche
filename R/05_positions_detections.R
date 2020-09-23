@@ -31,10 +31,13 @@ distance_east <- logger_pos[logger_pos$locatin == "East",]$dist_from_zero
 
 thermocline <- here("data/products/thermocline_data.csv") %>%
   read_csv() %>%
-  filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE & therm_part == "center")
+  filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE)
 
 thermocline_wide <- thermocline %>%
-  pivot_wider(id_cols = c("interval", "balanced_therm_depth"), names_from = "location",
+  pivot_wider(id_cols = c("interval", 
+                          "therm_part",
+                          "lake_therm_depth_smoothed",
+                          "lake_therm_temperature_smoothed"), names_from = "location",
               values_from = c("deviation", "thickness", "temperature", "depth"))
 
 
@@ -44,7 +47,7 @@ thermocline_wide <- thermocline %>%
 
 
 for(i in 1:length(tag_sns)){
-  positions <- read_csv(file = here(position_dir, paste0(tag_sns[i], ".csv"))) %>% 
+  positions <- read_csv(file = here(position_dir, paste0(tag_sns[i], ".csv")), col_types = c(up_depth = "d")) %>% 
     st_as_sf(coords = c("x", "y"), crs = 32633)
   
   detections <- read_csv(file = here(detection_dir, paste0(tag_sns[i], ".csv")))
@@ -77,14 +80,24 @@ for(i in 1:length(tag_sns)){
     detpos_therm <- as_tibble(thermocline_wide_dt[detpos_clean_dt, roll = "nearest"])
     
     # clean and interpolate values
+    #TODO: there is therm_part, account for that in interpolation, some (most) variables should use just center
     detpos_therm_interpolated <- detpos_therm %>% 
       rename(dets_ts = interval_tmp) %>% 
       filter(abs(as.numeric(difftime(dets_ts, interval, units = "secs"))) < 60*30) %>% #remove detections for which the thermocline log is further than 30 min
       rowwise() %>%
-      mutate(det_therm_thickness = interpolate_thermocline_value_linear(logger_distances = c(distance_west, distance_east), logger_values = c(thickness_East, thickness_West), detection_distances = dist_from_zero),
-             det_therm_temperature = interpolate_thermocline_value_linear(logger_distances = c(distance_west, distance_east), logger_values = c(temperature_East, temperature_West), detection_distances = dist_from_zero),
-             det_therm_depth_center = interpolate_thermocline_value_linear(logger_distances = c(distance_west, distance_east), logger_values = c(depth_East, depth_West), detection_distances = dist_from_zero),
-             det_therm_deviation = interpolate_thermocline_value_linear(logger_distances = c(distance_west, distance_east), logger_values = c(deviation_East, deviation_West), detection_distances = dist_from_zero),
+      mutate(det_therm_thickness = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                        logger_values = c(thickness_East, thickness_West),
+                                                                        detection_distances = dist_from_zero),
+             det_therm_temperature = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                          logger_values = c(temperature_East, temperature_West),
+                                                                          detection_distances = dist_from_zero),
+             det_therm_depth_center = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                           logger_values = c(depth_East, depth_West),
+                                                                           detection_distances = dist_from_zero),
+             det_therm_deviation = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                        logger_values = c(deviation_East, deviation_West),
+                                                                        detection_distances = dist_from_zero),
+             # TODO: det_therm_strengh
              )
       
   }
