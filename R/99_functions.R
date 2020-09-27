@@ -226,7 +226,7 @@ get_nighttime_polygons <- function(x, lat = 49.5765639, lon = 14.6637706){
 #' @param positions spatial points of positions
 #' @param lake_axis spatial line to project to
 #' @param point_zero spatial point on one side of the lake to measure the distance from
-#' @return numeric vector of distances for each given position
+#' @return numeric vector of distances for each given position's projection on lake_axis
 compute_distance_from_point_zero <- function(positions, lake_axis, point_zero){
   nearest_points <- st_nearest_points(positions, lake_axis) %>% st_cast("POINT")
   # previous step returned both starts and ends. Pick only points on axis
@@ -244,4 +244,41 @@ compute_distance_from_point_zero <- function(positions, lake_axis, point_zero){
 #' @return vector of values at place of detections
 interpolate_thermocline_value_linear <- function(logger_distances, logger_values, detection_distances){
   approx(x = logger_distances, y = logger_values, xout = detection_distances, rule = 2)$y
+}
+
+
+#' Function joining positions to each detection
+#' @param detections df of detections
+#' @param positions df of positions
+#' @details 
+join_detections_positions <- function(detections, poisitions, max_timediff){
+  # rolljoin positions and detections
+  positions <- data.table::as.data.table(positions)
+  detections <- data.table::as.data.table(detections)
+  positions$pos_ts <- positions$up_timestamp_utc
+  data.table::setkey(positions, up_timestamp_utc)
+  data.table::setkey(detections, det_ts)
+  detpos <- tidyr::as_tibble(positions[detections, , roll = "nearest"])
+  detpos_clean <- detpos %>%
+    rename(dets_ts = up_timestamp_utc) %>%
+    filter(abs(as.numeric(difftime(dets_ts, pos_ts, units = "secs"))) < max_timediff) %>%
+    mutate(dets_ts_5min = round_date(x = dets_ts, unit = "5 mins"))
+}
+
+#' Function joining detection records to thermocline
+#' @param detections df of detections (dets_ts, ...)
+#' @param thermocline df of thermocline (therm_part, thermocline_ts, ...)
+#' @details for each thermocline part, the detections are joined separately -> result can contain more records of one detections
+#' @return data.frame of joined detections to thermocline
+join_detections_thermocline <- function(detections, thermocline, max_timediff){
+  x <- merge(as.data.frame(detections), data.frame(therm_part = unique(thermocline$therm_part)), all = T)
+  x_dt <- as.data.table(x)
+  #x_dt$thermocline_ts <- x_dt$dets_ts
+  y_dt <- as.data.table(thermocline_wide)
+  y_dt$dets_ts <- y_dt$thermocline_ts
+  #y_dt$interval_tmp <- y_dt$thermocline_ts
+  setkey(x_dt, therm_part, dets_ts)
+  setkey(y_dt, therm_part, dets_ts)
+  detpos_therm <- as_tibble(y_dt[x_dt, roll = "nearest"]) %>%
+  filter(abs(as.numeric(difftime(dets_ts, thermocline_ts, units = "secs"))) < max_timediff)   # remove detections for which the thermocline log is further than 30 min
 }
