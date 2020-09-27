@@ -34,7 +34,7 @@ thermocline <- here("data/products/thermocline_data.csv") %>%
   filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE)
 
 thermocline_wide <- thermocline %>%
-  pivot_wider(id_cols = c("interval", 
+  pivot_wider(id_cols = c("thermocline_ts", 
                           "therm_part",
                           "lake_therm_depth_smoothed",
                           "lake_therm_temperature_smoothed"), names_from = "location",
