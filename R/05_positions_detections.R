@@ -38,7 +38,7 @@ thermocline_wide <- thermocline %>%
                           "therm_part",
                           "lake_therm_depth_smoothed",
                           "lake_therm_temperature_smoothed"), names_from = "location",
-              values_from = c("deviation", "thickness", "temperature", "depth"))
+              values_from = c("deviation", "thickness", "temperature", "depth", "strength"))
 
 
 
@@ -53,52 +53,44 @@ for(i in 1:length(tag_sns)){
   detections <- read_csv(file = here(detection_dir, paste0(tag_sns[i], ".csv")))
   
   if(nrow(positions) > 0){
+    
     # get distance from shore
     positions$dist_from_zero <- compute_distance_from_point_zero(positions = positions,
                                                                  lake_axis = lake_axis,
                                                                  point_zero = point_zero)
-    
-    # rolljoin positions and detections
-    positions_dt <- as.data.table(positions)
-    detections_dt <- as.data.table(detections)
-    positions_dt$pos_ts <- positions_dt$up_timestamp_utc
-    setkey(positions_dt, up_timestamp_utc)
-    setkey(detections_dt, det_ts)
-    detpos <- as_tibble(positions_dt[detections_dt, , roll = "nearest"])
-    detpos_clean <- detpos %>%
-      rename(dets_ts = up_timestamp_utc) %>%
-      filter(abs(as.numeric(difftime(dets_ts, pos_ts, units = "secs"))) < PAR_DET_POS_TIMEDIFF) %>%
-      mutate(dets_ts_5min = round_date(x = dets_ts, unit = "5 mins"))
       
-    #rolljoin detpos with thermocline
-    detpos_clean_dt <- as.data.table(detpos_clean)
-    thermocline_wide_dt <- as.data.table(thermocline_wide)
-    thermocline_wide_dt$interval_tmp <- thermocline_wide_dt$interval
+    # rolljoin detections to positions
+    detpos <- join_detections_positions(detections, positions, max_timediff = PAR_DET_POS_TIMEDIFF)
     
-    setkey(detpos_clean_dt, dets_ts)
-    setkey(thermocline_wide_dt, interval_tmp)
-    detpos_therm <- as_tibble(thermocline_wide_dt[detpos_clean_dt, roll = "nearest"])
+    # rolljoin detpos with thermocline (do not join more than 30 mins appart)
+    detpos_therm <- join_detections_thermocline(detpos, thermocline_wide, max_timediff = 60*30)
     
-    # clean and interpolate values
-    #TODO: there is therm_part, account for that in interpolation, some (most) variables should use just center
+    # clean and interpolate values into place of detection
     detpos_therm_interpolated <- detpos_therm %>% 
-      rename(dets_ts = interval_tmp) %>% 
-      filter(abs(as.numeric(difftime(dets_ts, interval, units = "secs"))) < 60*30) %>% #remove detections for which the thermocline log is further than 30 min
-      rowwise() %>%
+      rowwise() %>% # interpo
       mutate(det_therm_thickness = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
                                                                         logger_values = c(thickness_East, thickness_West),
                                                                         detection_distances = dist_from_zero),
              det_therm_temperature = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
                                                                           logger_values = c(temperature_East, temperature_West),
                                                                           detection_distances = dist_from_zero),
-             det_therm_depth_center = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+             det_therm_depth = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
                                                                            logger_values = c(depth_East, depth_West),
-                                                                           detection_distances = dist_from_zero),
-             det_therm_deviation = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
-                                                                        logger_values = c(deviation_East, deviation_West),
-                                                                        detection_distances = dist_from_zero),
-             # TODO: det_therm_strengh
-             )
+                                                                           detection_distances = dist_from_zero)
+             ) %>%
+      mutate(det_therm_deviation = lake_therm_depth_smoothed - det_therm_depth)
+    
+    # Widen so all therm_parts in separate columns
+    detpos_therm_interpolated_wide <- detpos_therm_interpolated %>%
+      pivot_wider(id_cols = c("tag_sn", "dets_ts", "det_depth", "thermocline_ts"), 
+                names_from = "therm_part", 
+                values_from = c( "lake_therm_depth_smoothed", "det_therm_temperature","det_therm_depth", "det_therm_deviation", "depth_East", "depth_West")) %>%
+      mutate(det_therm_strength = det_therm_temperature_start - det_therm_temperature_end) %>%
+      mutate(lake_disbalance = depth_East_center - depth_West_center) %>%
+      mutate(is_valid_seiche = abs(lake_disbalance) > 0.69999)
+
+    # Export
+    write_csv(x = detpos_therm_interpolated, path = here("data/products/fish/", paste0(tag_sns[i], ".csv")))
       
   }
 }
