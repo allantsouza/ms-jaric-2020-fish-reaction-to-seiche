@@ -145,12 +145,15 @@ for(i in 1:length(tag_sns)){
            up_tag_sn ='", tag_sns[i], "' AND
            up_timestamp_utc BETWEEN '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "'
            ")
+  
   positions <- dbGetQuery(con, sql_query_positions, stringsAsFactors = F)
   write_csv(x = positions, path = here("data", "raw", "db", "fish", "positions", paste0(tag_sns[i], ".csv")))
-  
-  
+}
+
+for(i in 1:length(tag_sns)){
   sql_query_detections <-paste0("
-  SELECT dd_tag_sn as tag_sn,
+  SELECT dd_id as det_id,
+         dd_tag_sn as tag_sn,
          dd_depth as det_depth,
          dd_timestamp_utc as det_ts
   FROM at_macfish.detsdepth
@@ -158,8 +161,7 @@ for(i in 1:length(tag_sns)){
         dd_tag_sn ='", tag_sns[i], "' AND
         dd_timestamp_utc BETWEEN '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "'
   ")
+  
   detections <-dbGetQuery(con, sql_query_detections, stringsAsFactors = F)
-  
   write_csv(x = detections, path = here("data", "raw", "db", "fish", "detections", paste0(tag_sns[i], ".csv")))
-  
 }

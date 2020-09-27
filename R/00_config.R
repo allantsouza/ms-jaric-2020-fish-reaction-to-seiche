@@ -8,12 +8,13 @@ library(RPostgreSQL)
 library(data.table)
 library(here)
 library(sf)
+library(grid)
 
 
 
 # Global variables -------------------------------------------------------------
 
-DATE_RANGE <- c("2015-07-05","2015-07-25")
+DATE_RANGE <- c("2015-06-16","2015-10-15")
 
 PAR_THERMOCLINE_SLOPE <- 1
 
@@ -21,8 +22,8 @@ PAR_THERMOCLINE_SLOPE <- 1
 PAR_SHIFT_SPEED <- 0.5
 
 #Balance depth of thermocline
-#rolling window width for smoothing thermocline balance
-PAR_THERMOCLINE_BALACE <- 60*60*24*4
+# rolling window width for smoothing thermocline to get lake-wide thermocline depth (moment without seiche)
+PAR_THERMOCLINE_SMOOTH <- 60*60*24*4
 
 # TODO connection to database
 con <- dbConnect(drv = PostgreSQL(), 
