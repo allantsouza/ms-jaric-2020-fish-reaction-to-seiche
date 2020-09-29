@@ -162,7 +162,9 @@ for(i in 1:length(tag_sns)){
            ")
   
   positions <- dbGetQuery(con, sql_query_positions, stringsAsFactors = F)
-  write_csv(x = positions, path = here("data", "raw", "db", "fish", "positions", paste0(tag_sns[i], ".csv")))
+  if(nrow(positions) > 0){
+    write_csv(x = positions, path = here("data", "raw", "db", "fish", "positions", paste0(tag_sns[i], ".csv")))
+  }
 }
 
 for(i in 1:length(tag_sns)){
@@ -178,5 +180,7 @@ for(i in 1:length(tag_sns)){
   ")
   
   detections <-dbGetQuery(con, sql_query_detections, stringsAsFactors = F)
-  write_csv(x = detections, path = here("data", "raw", "db", "fish", "detections", paste0(tag_sns[i], ".csv")))
+  if(nrow(detections) > 0){
+    write_csv(x = detections, path = here("data", "raw", "db", "fish", "detections", paste0(tag_sns[i], ".csv")))
+  }
 }
