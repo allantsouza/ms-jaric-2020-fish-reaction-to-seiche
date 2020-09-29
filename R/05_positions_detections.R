@@ -6,7 +6,7 @@
 # Loading data ------------------------------------------------------------
 
 
-fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccd")
+fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccdc")
 tag_sns <- fish_raw$tag_sn
 
 
