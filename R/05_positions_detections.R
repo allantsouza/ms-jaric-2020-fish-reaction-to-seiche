@@ -72,6 +72,9 @@ for(i in 1:length(tag_sns)){
   
   # rolljoin detpos with thermocline (do not join more than 30 mins appart)
   detpos_therm <- join_detections_thermocline(detpos, thermocline_wide, max_timediff = 60*30)
+  if(nrow(detpos_therm) == 0){
+    next
+  }
   
   # clean and interpolate values into place of detection
   detpos_therm_interpolated <- detpos_therm %>% 
