@@ -93,13 +93,14 @@ for(i in 1:length(tag_sns)){
   
   # Widen so all therm_parts in separate columns
   detpos_therm_interpolated_wide <- detpos_therm_interpolated %>%
-    pivot_wider(id_cols = c("tag_sn", "dets_ts", "det_depth", "thermocline_ts"), 
+    pivot_wider(id_cols = c("tag_sn", "dets_ts", "det_depth", "thermocline_ts", "dist_from_zero"), 
               names_from = "therm_part", 
               values_from = c("lake_therm_depth_smoothed", "det_therm_temperature", "det_therm_depth", "det_therm_deviation", "depth_East", "depth_West")) %>%
     mutate(det_therm_strength = det_therm_temperature_start - det_therm_temperature_end) %>%
     mutate(lake_disbalance = depth_East_center - depth_West_center) %>%
     mutate(is_valid_seiche = abs(lake_disbalance) > 0.69999) %>%
-    mutate(lake_therm_thickness_smoothed = lake_therm_depth_smoothed_end - lake_therm_depth_smoothed_start)
+    mutate(lake_therm_thickness_smoothed = lake_therm_depth_smoothed_end - lake_therm_depth_smoothed_start) %>%
+    mutate(diel_period = get_diel_period(dets_ts))
 
   # Export
   write_csv(x = detpos_therm_interpolated_wide, path = here("data/products/fish/", paste0(tag_sns[i], ".csv")))
