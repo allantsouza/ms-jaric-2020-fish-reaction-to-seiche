@@ -30,7 +30,7 @@ distance_east <- logger_pos[logger_pos$locatin == "East",]$dist_from_zero
 
 
 thermocline <- here("data/products/thermocline_data.csv") %>%
-  read_csv() %>%
+  read_csv(col_types = c("thermocline_ts" = "T")) %>%
   filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE)
 
 thermocline_wide <- thermocline %>%
@@ -60,7 +60,7 @@ for(i in 1:length(tag_sns)){
   if(!file.exists(position_i_fp)){
     next
   }
-  detections <- read_csv(file = detections_i_fp)
+  detections <- read_csv(file = detections_i_fp, col_types = c("dcdT"))
   
   # get distance from shore
   positions$dist_from_zero <- compute_distance_from_point_zero(positions = positions,

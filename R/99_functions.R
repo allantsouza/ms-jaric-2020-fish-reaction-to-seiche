@@ -126,15 +126,15 @@ roll_time_window <- function(x, times, span, FUN){
 
 #' Functions loading data
 load_hobo_data <- function(){
-  read_csv(here("data", "raw", "db", "hobo_data.csv"))
+  read_csv(here("data", "raw", "db", "hobo_data.csv"), col_types = c("dTdddccdTTTd"))
 }
 
 load_temperature_data <- function(){
-  read_csv(here("data", "raw", "db", "temperature_data.csv"))
+  read_csv(here("data", "raw", "db", "temperature_data.csv"), col_types = c("cTdd"))
 }
 
 load_wind_data <- function(){
-  read_csv(here("data", "raw", "db", "wind_data.csv"))
+  read_csv(here("data", "raw", "db", "wind_data.csv"), col_types =  c("cccccddTd"))
 }
 
 #' Smooth temperature profile
