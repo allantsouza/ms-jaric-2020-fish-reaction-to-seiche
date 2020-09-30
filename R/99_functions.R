@@ -126,15 +126,15 @@ roll_time_window <- function(x, times, span, FUN){
 
 #' Functions loading data
 load_hobo_data <- function(){
-  read_csv(here("data", "raw", "db", "hobo_data.csv"))
+  read_csv(here("data", "raw", "db", "hobo_data.csv"), col_types = c("dTdddccdTTTd"))
 }
 
 load_temperature_data <- function(){
-  read_csv(here("data", "raw", "db", "temperature_data.csv"))
+  read_csv(here("data", "raw", "db", "temperature_data.csv"), col_types = c("cTdd"))
 }
 
 load_wind_data <- function(){
-  read_csv(here("data", "raw", "db", "wind_data.csv"))
+  read_csv(here("data", "raw", "db", "wind_data.csv"), col_types =  c("cccccddTd"))
 }
 
 #' Smooth temperature profile
@@ -163,10 +163,10 @@ interpolate_temperature_profile <- function(depth, temperature, depth_res = 0.1)
 #'
 #' @return character vector giving night or day
 #' @export
-#'
+#'  
 #' @examples
-#' get_dial_period(x = seq.POSIXt(from = Sys.time(), to = Sys.time()+84600, length.out = 20))
-get_dial_period <- function(x, lat = 49.5765639, lon = 14.6637706, label_day = "day", label_night = "night"){
+#' get_diel_period(x = seq.POSIXt(from = Sys.time(), to = Sys.time()+84600, length.out = 20))
+get_diel_period <- function(x, lat = 49.5765639, lon = 14.6637706, label_day = "day", label_night = "night"){
   if(length(x) == 0) stop("Length of the input is 0")
   if(all(is.na(x))) return(as.character(x))
   sunset_sunrise <- get_sunsets_sunrises(x, lat = lat, lon = lon)
@@ -179,7 +179,7 @@ get_dial_period <- function(x, lat = 49.5765639, lon = 14.6637706, label_day = "
 #' 
 #' For each given time, function returns sunset and sunrise time on that given day date
 #' 
-#' @inheritParams get_dial_period
+#' @inheritParams get_diel_period
 get_sunsets_sunrises <- function(x, lat = 49.5765639, lon = 14.6637706){
   sunrise_sunset <- get_sunset_sunrise(x, lat, lon)
   sunrise_sunset$Date <- as.Date(sunrise_sunset$sunrise)
@@ -191,7 +191,8 @@ get_sunsets_sunrises <- function(x, lat = 49.5765639, lon = 14.6637706){
 #' 
 #' for time span given by time vector, function returns sunset and sunrise times
 #' 
-#' @inheritParams get_dial_period
+#' @inheritParams get_diel_period
+#' @importFrom StreamMetabolism sunrise.set
 get_sunset_sunrise <- function(x, lat = 49.5765639, lon = 14.6637706){
   from <- min(x, na.rm = T)
   to <- max(x, na.rm = T)
@@ -200,7 +201,7 @@ get_sunset_sunrise <- function(x, lat = 49.5765639, lon = 14.6637706){
 
 #' Get night time polygons
 #'
-#' @inheritParams get_dial_period
+#' @inheritParams get_diel_period
 #'
 #' @return
 #' @export

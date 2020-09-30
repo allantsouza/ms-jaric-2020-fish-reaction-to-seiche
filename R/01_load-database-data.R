@@ -84,8 +84,23 @@ temperatures[cum.min.temp < temperature, temperature := cum.min.temp]
 #since you are interested in last occurence of that temperature, you can exclude those above
 temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location, ts, temperature)]
 
-write_csv(x = temperatures_monotonic , path = here("data", "raw", "db", "temperature_data.csv"))
+write_csv(x = temperatures_monotonic, path = here("data", "raw", "db", "temperature_data.csv"))
 
+sql_query_hobodeployements <- sql_query_temperatures <- paste0(
+  "SELECT 
+  lp_pos_name as location,
+  hl_logger_sn logger_sn,
+  hde_depth deployment_depth,
+  hde_retrieval_utc retrieval_ts,
+  hde_deployment_utc deployment_ts
+  FROM at_macfish.hobodeployments
+  WHERE lp_pos_name IN ('East', 'West') AND
+  (hde_deployment_utc BETWEEN  '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "' OR hde_retrieval_utc BETWEEN  '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "')
+  ;")
+
+hobodeployements <- data.table(dbGetQuery(con, sql_query_hobodeployements, stringsAsFactors = F))
+
+write_csv(x = hobodeployements, path = here("data", "raw", "db", "hobodeployements.csv"))
 
 
 # Spatial objects ---------------------------------------------------------
@@ -147,7 +162,9 @@ for(i in 1:length(tag_sns)){
            ")
   
   positions <- dbGetQuery(con, sql_query_positions, stringsAsFactors = F)
-  write_csv(x = positions, path = here("data", "raw", "db", "fish", "positions", paste0(tag_sns[i], ".csv")))
+  if(nrow(positions) > 0){
+    write_csv(x = positions, path = here("data", "raw", "db", "fish", "positions", paste0(tag_sns[i], ".csv")))
+  }
 }
 
 for(i in 1:length(tag_sns)){
@@ -163,5 +180,7 @@ for(i in 1:length(tag_sns)){
   ")
   
   detections <-dbGetQuery(con, sql_query_detections, stringsAsFactors = F)
-  write_csv(x = detections, path = here("data", "raw", "db", "fish", "detections", paste0(tag_sns[i], ".csv")))
+  if(nrow(detections) > 0){
+    write_csv(x = detections, path = here("data", "raw", "db", "fish", "detections", paste0(tag_sns[i], ".csv")))
+  }
 }

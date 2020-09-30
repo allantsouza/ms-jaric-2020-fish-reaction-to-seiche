@@ -9,6 +9,7 @@ library(data.table)
 library(here)
 library(sf)
 library(grid)
+library(StreamMetabolism)
 
 
 
