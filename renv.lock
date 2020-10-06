@@ -632,6 +632,13 @@
       "Repository": "CRAN",
       "Hash": "97def703420c8ab10d8f0e6c72101e02"
     },
+    "raster": {
+      "Package": "raster",
+      "Version": "3.3-13",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "51cfecf7b9518d46b119f92d581616b6"
+    },
     "readr": {
       "Package": "readr",
       "Version": "1.4.0",
@@ -674,6 +681,13 @@
       "Repository": "CRAN",
       "Hash": "3f840ce3afbcb78ad2a728558dba2078"
     },
+    "rgeos": {
+      "Package": "rgeos",
+      "Version": "0.5-5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "94a44c3f0d49ceb80c385610696873ca"
+    },
     "rjson": {
       "Package": "rjson",
       "Version": "0.2.20",
@@ -701,6 +715,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "2d44e9bbfe7aff5acb7583482be4096d"
+    },
+    "rpostgis": {
+      "Package": "rpostgis",
+      "Version": "1.4.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "91c55d1aa58303cf3d411f0587a4e53a"
     },
     "rprojroot": {
       "Package": "rprojroot",
