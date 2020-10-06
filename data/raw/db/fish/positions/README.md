@@ -1,0 +1,1 @@
+# Folder with fish positions downloaded from database

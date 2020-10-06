@@ -1,0 +1,1 @@
+# Folder with fish detections downloaded from database

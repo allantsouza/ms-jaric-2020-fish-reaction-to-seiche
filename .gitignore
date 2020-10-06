@@ -7,13 +7,13 @@
 !**/README.md
 
 # data products are derived from raw data
-data/products/*
-
+data/products/**
 # data pulled from database
-data/raw/db/*
+data/raw/db/**
 
 # outputs are produced by scripts
-outputs/*
+outputs/**
 
 # keep all readme files
+!data/**/
 !**/README.md
