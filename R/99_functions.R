@@ -21,7 +21,7 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
   #compute derivations in each step (decrease of temperature per meter)
   frame_new[, therm_diff_bool := -diff_threshold > slope]
   #add also ending point from which the thermocline was not with diff.threshodl slope
-  frame_new[shift(therm_diff_bool, n = 1, fill = F, type = "lag") == T & therm_diff_bool == F , therm_diff_bool := T]
+  frame_new[data.table::shift(therm_diff_bool, n = 1, fill = F, type = "lag") == T & therm_diff_bool == F , therm_diff_bool := T]
   #add group when the validity of condition changed
   frame_new[, therm_split := rleid(therm_diff_bool)]
   #take only valid steps
