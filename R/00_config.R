@@ -10,6 +10,9 @@ library(here)
 library(sf)
 library(grid)
 library(StreamMetabolism)
+library(ggspatial)
+library(rpostgis)
+library(raster)
 
 
 
