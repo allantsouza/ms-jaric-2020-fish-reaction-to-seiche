@@ -118,16 +118,16 @@ WHERE lt_lake = 'Chabarovice'
 "
 
 st_read(con, query = sql_query_loggerpos) %>% 
-  st_write(here("data/raw/db/logger_positions.shp"))
+  st_write(here("data/raw/db/logger_positions.shp"), append = F)
 
 
 # Lake shape polygon
 st_read(con, query = "SELECT lt_shoreline_pol_smooth FROM at_macfish.laketable WHERE lt_lake = 'Chabarovice'") %>%
-  st_write(obj = lake_shp, dsn = here("data/raw/db/lake_shape.shp") )
+  st_write(dsn = here("data/raw/db/lake_shape.shp"), append = F)
 
 # Lake depth raster
 depth_raster <- rpostgis::pgGetRast(con, c("at_macfish", "depthrast"), clauses = "WHERE lt_lake = 'Chabarovice'")
-raster::writeRaster(x = depth_raster, filename = here("data/raw/sp/lake_raster.tif"), format = "GTiff")
+raster::writeRaster(x = depth_raster, filename = here("data/raw/sp/lake_raster.tif"), format = "GTiff", overwrite = T)
 
 
 
@@ -151,7 +151,7 @@ write_csv(x = wind_data, path = here("data", "raw", "db", "wind_data.csv"))
 
 
 # Detection data ----------------------------------------------------------
-fish_raw <- read_csv(file = here("data/raw/fishIDs.csv"), col_types = "ccd")
+fish_raw <- read_csv(file = here("data/raw/fishIDs.csv"), col_types = "ccdi")
 
 tag_sns <- fish_raw$tag_sn
 
