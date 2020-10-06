@@ -33,12 +33,16 @@ thermocline <- here("data/products/thermocline_data.csv") %>%
   read_csv(col_types = c("thermocline_ts" = "T")) %>%
   filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE)
 
-thermocline_wide <- thermocline %>%
+thermocline_wide <- thermocline %>% 
   pivot_wider(id_cols = c("thermocline_ts", 
                           "therm_part",
                           "lake_therm_depth_smoothed",
                           "lake_therm_temperature_smoothed"), names_from = "location",
-              values_from = c("deviation", "thickness", "temperature", "depth", "strength"))
+              values_from = c("deviation", "thickness", "temperature", "depth", "strength")) %>%
+  group_by(thermocline_ts) %>%
+  filter(!is.na(depth_East) & !is.na(depth_West)) %>%
+  ungroup()
+  
 
 
 
@@ -69,7 +73,7 @@ for(i in 1:length(tag_sns)){
     
   # rolljoin detections to positions
   detpos <- join_detections_positions(detections, positions, max_timediff = PAR_DET_POS_TIMEDIFF)
-  
+
   # rolljoin detpos with thermocline (do not join more than 30 mins appart)
   detpos_therm <- join_detections_thermocline(detpos, thermocline_wide, max_timediff = 60*30)
   if(nrow(detpos_therm) == 0){
