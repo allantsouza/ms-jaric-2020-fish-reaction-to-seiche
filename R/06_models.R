@@ -1,10 +1,5 @@
-# TODO: this should be for loop to compute for all species
-species <- "pike"
-
-
 # Load data ---------------------------------------------------------------
 fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccdc") %>%
-  filter(species == !!species) %>%
   mutate(data_path = here("data/products/fish",paste0(tag_sn, ".csv")))
 
 
@@ -14,8 +9,7 @@ detections <- fish_raw %>%
   # read in all the files, appending the path before the filename
   map(~ read_csv(.)) %>% 
   reduce(rbind) %>%
-  inner_join(fish_raw[,c("tag_sn","fishid")])
-
+  inner_join(fish_raw[,c("tag_sn","fishid", "species")])
 
 
 # Models ------------------------------------------------------------------
@@ -47,9 +41,443 @@ f_lmer_mc <- function(data, calls, mc.cores) {
   return(m.list)
 }
 
+#Models 2020####
+#Pike ####
+#random intercept and random slope per fish id - Day (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_day <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                 det_therm_strength + lake_therm_depth_smoothed_center + 
+                                 det_therm_deviation_center + 
+                                 (1 + lake_therm_thickness_smoothed + 
+                                    det_therm_strength + 
+                                    lake_therm_depth_smoothed_center +
+                                    det_therm_deviation_center | fishid),
+                               data = detections %>% 
+                                 filter(species == "pike" & 
+                                          diel_period == 'day' & 
+                                          is_valid_seiche == TRUE), 
+                               REML = T, 
+                               lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#random intercept and random slope per fish id - Night (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_night <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                 det_therm_strength + lake_therm_depth_smoothed_center + 
+                                 det_therm_deviation_center + 
+                                 (1 + lake_therm_thickness_smoothed + 
+                                    det_therm_strength + 
+                                    lake_therm_depth_smoothed_center + 
+                                    det_therm_deviation_center | fishid),
+                               data = detections %>% 
+                                 filter(species == "pike" & 
+                                          diel_period == 'night' & 
+                                          is_valid_seiche == TRUE), 
+                               REML = T, 
+                               lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#Summary of the model results
+tab_model(mdl_random_slo_int_day, mdl_random_slo_int_night, dv.labels = c("Day","Night"), 
+          title='Pike (Seiche only)',
+          pred.labels = c('Intercept', 'Thermocline thickness (m)',
+                          'Thermocline strength (ºC)',
+                          'Thermocline depth (m)',
+                          'Seiche strength'))#sigma² = withing group variance; tau00 = between group variance; ICC = proportion of variance explained for each group level
+
+#Sum of squares to give the percentage explained by each variable in the model####
+#Day
+mdl_random_slo_int_day_aov <-  anova(mdl_random_slo_int_day)
+#Night
+mdl_random_slo_int_night_aov <-  anova(mdl_random_slo_int_night)
+
+#Percentage explained by each variable
+#Day
+pike_mdl_day_percentage <- tibble(species = "pike",
+                                  diel_period = "day",
+                                  variable = c('Thermocline thickness (m)',
+                                               'Thermocline strength (ºC)',
+                                               'Thermocline depth (m)',
+                                               'Seiche strength'),
+                                  percentage_explained = c(
+                                    round(mdl_random_slo_int_day_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_day_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_day_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_day_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_day_aov$`Sum Sq`),2)
+                                    )
+                                  )
+#Night
+pike_mdl_night_percentage <- tibble(species = "pike",
+                                  diel_period = "night",
+                                  variable = c('Thermocline thickness (m)',
+                                               'Thermocline strength (ºC)',
+                                               'Thermocline depth (m)',
+                                               'Seiche strength'),
+                                  percentage_explained = c(
+                                    round(mdl_random_slo_int_night_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_night_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_night_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_night_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_night_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_night_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_night_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_night_aov$`Sum Sq`),2))
+)
+
+#Pike (day & night)
+pike_mld_percentages <- bind_rows(pike_mdl_day_percentage, pike_mdl_night_percentage)
+
+#Wels catfish ####
+detections %>% distinct(species)
+#random intercept and random slope per fish id - Day (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_day_wels <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                 det_therm_strength + lake_therm_depth_smoothed_center + 
+                                 det_therm_deviation_center + 
+                                 (1 + lake_therm_thickness_smoothed + 
+                                    det_therm_strength + 
+                                    lake_therm_depth_smoothed_center +
+                                    det_therm_deviation_center | fishid),
+                               data = detections %>% 
+                                 filter(species == "wels" & 
+                                          diel_period == 'day' & 
+                                          is_valid_seiche == TRUE), 
+                               REML = T, 
+                               lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#random intercept and random slope per fish id - Night (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_night_wels <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                   det_therm_strength + lake_therm_depth_smoothed_center + 
+                                   det_therm_deviation_center + 
+                                   (1 + lake_therm_thickness_smoothed + 
+                                      det_therm_strength + 
+                                      lake_therm_depth_smoothed_center + 
+                                      det_therm_deviation_center | fishid),
+                                 data = detections %>% 
+                                   filter(species == "wels" & 
+                                            diel_period == 'night' & 
+                                            is_valid_seiche == TRUE), 
+                                 REML = T, 
+                                 lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#Summary of the model results
+tab_model(mdl_random_slo_int_day_wels, 
+          mdl_random_slo_int_night_wels, dv.labels = c("Day","Night"), 
+          title='Wels catfish (Seiche only)',
+          pred.labels = c('Intercept', 'Thermocline thickness (m)',
+                          'Thermocline strength (ºC)',
+                          'Thermocline depth (m)',
+                          'Seiche strength'))#sigma² = withing group variance; tau00 = between group variance; ICC = proportion of variance explained for each group level
+
+#Sum of squares to give the percentage explained by each variable in the model####
+#Day
+mdl_random_slo_int_wels_day_aov <-  anova(mdl_random_slo_int_day_wels)
+#Night
+mdl_random_slo_int_wels_night_aov <-  anova(mdl_random_slo_int_night_wels)
+
+#Percentage explained by each variable
+#Day
+wels_mdl_day_percentage <- tibble(species = "wels",
+                                  diel_period = "day",
+                                  variable = c('Thermocline thickness (m)',
+                                               'Thermocline strength (ºC)',
+                                               'Thermocline depth (m)',
+                                               'Seiche strength'),
+                                  percentage_explained = c(
+                                    round(mdl_random_slo_int_wels_day_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_wels_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_wels_day_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_wels_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_wels_day_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_wels_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_wels_day_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_wels_day_aov$`Sum Sq`),2)
+                                  )
+)
+#Night
+wels_mdl_night_percentage <- tibble(species = "wels",
+                                    diel_period = "night",
+                                    variable = c('Thermocline thickness (m)',
+                                                 'Thermocline strength (ºC)',
+                                                 'Thermocline depth (m)',
+                                                 'Seiche strength'),
+                                    percentage_explained = c(
+                                      round(mdl_random_slo_int_wels_night_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_wels_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_wels_night_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_wels_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_wels_night_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_wels_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_wels_night_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_wels_night_aov$`Sum Sq`),2))
+)
+
+#Wels (day & night)
+wels_mld_percentages <- bind_rows(wels_mdl_day_percentage, wels_mdl_night_percentage)
+
+#Tench ####
+detections %>% distinct(species)
+#random intercept and random slope per fish id - Day (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_day_tench <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                      det_therm_strength + lake_therm_depth_smoothed_center + 
+                                      det_therm_deviation_center + 
+                                      (1 + lake_therm_thickness_smoothed + 
+                                         det_therm_strength + 
+                                         lake_therm_depth_smoothed_center +
+                                         det_therm_deviation_center | fishid),
+                                    data = detections %>% 
+                                      filter(species == "tench" & 
+                                               diel_period == 'day' & 
+                                               is_valid_seiche == TRUE), 
+                                    REML = T, 
+                                    lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#random intercept and random slope per fish id - Night (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_night_tench <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                        det_therm_strength + lake_therm_depth_smoothed_center + 
+                                        det_therm_deviation_center + 
+                                        (1 + lake_therm_thickness_smoothed + 
+                                           det_therm_strength + 
+                                           lake_therm_depth_smoothed_center + 
+                                           det_therm_deviation_center | fishid),
+                                      data = detections %>% 
+                                        filter(species == "tench" & 
+                                                 diel_period == 'night' & 
+                                                 is_valid_seiche == TRUE), 
+                                      REML = T, 
+                                      lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#Summary of the model results
+tab_model(mdl_random_slo_int_day_tench, 
+          mdl_random_slo_int_night_tench, dv.labels = c("Day","Night"), 
+          title='Wels catfish (Seiche only)',
+          pred.labels = c('Intercept', 'Thermocline thickness (m)',
+                          'Thermocline strength (ºC)',
+                          'Thermocline depth (m)',
+                          'Seiche strength'))#sigma² = withing group variance; tau00 = between group variance; ICC = proportion of variance explained for each group level
+
+#Sum of squares to give the percentage explained by each variable in the model####
+#Day
+mdl_random_slo_int_tench_day_aov <-  anova(mdl_random_slo_int_day_tench)
+#Night
+mdl_random_slo_int_tench_night_aov <-  anova(mdl_random_slo_int_night_tench)
+
+#Percentage explained by each variable
+#Day
+tench_mdl_day_percentage <- tibble(species = "tench",
+                                  diel_period = "day",
+                                  variable = c('Thermocline thickness (m)',
+                                               'Thermocline strength (ºC)',
+                                               'Thermocline depth (m)',
+                                               'Seiche strength'),
+                                  percentage_explained = c(
+                                    round(mdl_random_slo_int_tench_day_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_tench_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_tench_day_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_tench_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_tench_day_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_tench_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_tench_day_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_tench_day_aov$`Sum Sq`),2)
+                                  )
+)
+#Night
+tench_mdl_night_percentage <- tibble(species = "tench",
+                                    diel_period = "night",
+                                    variable = c('Thermocline thickness (m)',
+                                                 'Thermocline strength (ºC)',
+                                                 'Thermocline depth (m)',
+                                                 'Seiche strength'),
+                                    percentage_explained = c(
+                                      round(mdl_random_slo_int_tench_night_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_tench_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_tench_night_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_tench_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_tench_night_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_tench_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_tench_night_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_tench_night_aov$`Sum Sq`),2))
+)
+
+#Tench (day & night)
+tench_mld_percentages <- bind_rows(tench_mdl_day_percentage, tench_mdl_night_percentage)
+
+#Rudd ####
+detections %>% distinct(species)
+#random intercept and random slope per fish id - Day (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_day_rudd <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                       det_therm_strength + lake_therm_depth_smoothed_center + 
+                                       det_therm_deviation_center + 
+                                       (1 + lake_therm_thickness_smoothed + 
+                                          det_therm_strength + 
+                                          lake_therm_depth_smoothed_center +
+                                          det_therm_deviation_center | fishid),
+                                     data = detections %>% 
+                                       filter(species == "rudd" & 
+                                                diel_period == 'day' & 
+                                                is_valid_seiche == TRUE), 
+                                     REML = T, 
+                                     lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#random intercept and random slope per fish id - Night (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_night_rudd <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                         det_therm_strength + lake_therm_depth_smoothed_center + 
+                                         det_therm_deviation_center + 
+                                         (1 + lake_therm_thickness_smoothed + 
+                                            det_therm_strength + 
+                                            lake_therm_depth_smoothed_center + 
+                                            det_therm_deviation_center | fishid),
+                                       data = detections %>% 
+                                         filter(species == "rudd" & 
+                                                  diel_period == 'night' & 
+                                                  is_valid_seiche == TRUE), 
+                                       REML = T, 
+                                       lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#Summary of the model results
+tab_model(mdl_random_slo_int_day_rudd, 
+          mdl_random_slo_int_night_rudd, dv.labels = c("Day","Night"), 
+          title='Wels catfish (Seiche only)',
+          pred.labels = c('Intercept', 'Thermocline thickness (m)',
+                          'Thermocline strength (ºC)',
+                          'Thermocline depth (m)',
+                          'Seiche strength'))#sigma² = withing group variance; tau00 = between group variance; ICC = proportion of variance explained for each group level
+
+#Sum of squares to give the percentage explained by each variable in the model####
+#Day
+mdl_random_slo_int_rudd_day_aov <-  anova(mdl_random_slo_int_day_rudd)
+#Night
+mdl_random_slo_int_rudd_night_aov <-  anova(mdl_random_slo_int_night_rudd)
+
+#Percentage explained by each variable
+#Day
+rudd_mdl_day_percentage <- tibble(species = "rudd",
+                                   diel_period = "day",
+                                   variable = c('Thermocline thickness (m)',
+                                                'Thermocline strength (ºC)',
+                                                'Thermocline depth (m)',
+                                                'Seiche strength'),
+                                   percentage_explained = c(
+                                     round(mdl_random_slo_int_rudd_day_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_rudd_day_aov$`Sum Sq`),2),
+                                     round(mdl_random_slo_int_rudd_day_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_rudd_day_aov$`Sum Sq`),2),
+                                     round(mdl_random_slo_int_rudd_day_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_rudd_day_aov$`Sum Sq`),2),
+                                     round(mdl_random_slo_int_rudd_day_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_rudd_day_aov$`Sum Sq`),2)
+                                   )
+)
+#Night
+rudd_mdl_night_percentage <- tibble(species = "rudd",
+                                     diel_period = "night",
+                                     variable = c('Thermocline thickness (m)',
+                                                  'Thermocline strength (ºC)',
+                                                  'Thermocline depth (m)',
+                                                  'Seiche strength'),
+                                     percentage_explained = c(
+                                       round(mdl_random_slo_int_rudd_night_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_rudd_night_aov$`Sum Sq`),2),
+                                       round(mdl_random_slo_int_rudd_night_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_rudd_night_aov$`Sum Sq`),2),
+                                       round(mdl_random_slo_int_rudd_night_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_rudd_night_aov$`Sum Sq`),2),
+                                       round(mdl_random_slo_int_rudd_night_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_rudd_night_aov$`Sum Sq`),2))
+)
+
+#Rudd (day & night)
+rudd_mld_percentages <- bind_rows(rudd_mdl_day_percentage, rudd_mdl_night_percentage)
+
+#Roach ####
+detections %>% distinct(species)
+#random intercept and random slope per fish id - Day (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_day_roach <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                      det_therm_strength + lake_therm_depth_smoothed_center + 
+                                      det_therm_deviation_center + 
+                                      (1 + lake_therm_thickness_smoothed + 
+                                         det_therm_strength + 
+                                         lake_therm_depth_smoothed_center +
+                                         det_therm_deviation_center | fishid),
+                                    data = detections %>% 
+                                      filter(species == "roach" & 
+                                               diel_period == 'day' & 
+                                               is_valid_seiche == TRUE), 
+                                    REML = T, 
+                                    lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#random intercept and random slope per fish id - Night (Seiche only)
+tic('Fuck, it took this amount of time to run the model')
+mdl_random_slo_int_night_roach <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + 
+                                        det_therm_strength + lake_therm_depth_smoothed_center + 
+                                        det_therm_deviation_center + 
+                                        (1 + lake_therm_thickness_smoothed + 
+                                           det_therm_strength + 
+                                           lake_therm_depth_smoothed_center + 
+                                           det_therm_deviation_center | fishid),
+                                      data = detections %>% 
+                                        filter(species == "rudd" & 
+                                                 diel_period == 'night' & 
+                                                 is_valid_seiche == TRUE), 
+                                      REML = T, 
+                                      lmerControl(optimizer = 'bobyqa', calc.derivs = FALSE)) #uncorrelated random intercept and random slope within fishid
+toc()
+
+#Summary of the model results
+tab_model(mdl_random_slo_int_day_roach, 
+          mdl_random_slo_int_night_roach, dv.labels = c("Day","Night"), 
+          title='Wels catfish (Seiche only)',
+          pred.labels = c('Intercept', 'Thermocline thickness (m)',
+                          'Thermocline strength (ºC)',
+                          'Thermocline depth (m)',
+                          'Seiche strength'))#sigma² = withing group variance; tau00 = between group variance; ICC = proportion of variance explained for each group level
+
+#Sum of squares to give the percentage explained by each variable in the model####
+#Day
+mdl_random_slo_int_roach_day_aov <-  anova(mdl_random_slo_int_day_roach)
+#Night
+mdl_random_slo_int_roach_night_aov <-  anova(mdl_random_slo_int_night_roach)
+
+#Percentage explained by each variable
+#Day
+roach_mdl_day_percentage <- tibble(species = "roach",
+                                  diel_period = "day",
+                                  variable = c('Thermocline thickness (m)',
+                                               'Thermocline strength (ºC)',
+                                               'Thermocline depth (m)',
+                                               'Seiche strength'),
+                                  percentage_explained = c(
+                                    round(mdl_random_slo_int_roach_day_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_roach_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_roach_day_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_roach_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_roach_day_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_roach_day_aov$`Sum Sq`),2),
+                                    round(mdl_random_slo_int_roach_day_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_roach_day_aov$`Sum Sq`),2)
+                                  )
+)
+#Night
+roach_mdl_night_percentage <- tibble(species = "roach",
+                                    diel_period = "night",
+                                    variable = c('Thermocline thickness (m)',
+                                                 'Thermocline strength (ºC)',
+                                                 'Thermocline depth (m)',
+                                                 'Seiche strength'),
+                                    percentage_explained = c(
+                                      round(mdl_random_slo_int_roach_night_aov$`Sum Sq`[1]*100/sum(mdl_random_slo_int_roach_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_roach_night_aov$`Sum Sq`[2]*100/sum(mdl_random_slo_int_roach_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_roach_night_aov$`Sum Sq`[3]*100/sum(mdl_random_slo_int_roach_night_aov$`Sum Sq`),2),
+                                      round(mdl_random_slo_int_roach_night_aov$`Sum Sq`[4]*100/sum(mdl_random_slo_int_roach_night_aov$`Sum Sq`),2))
+)
+
+#Roach (day & night)
+roach_mld_percentages <- bind_rows(roach_mdl_day_percentage, roach_mdl_night_percentage)
+
+mld_percentages <- bind_rows(pike_mld_percentages, 
+                             wels_mld_percentages,
+                             tench_mld_percentages,
+                             rudd_mld_percentages,
+                             roach_mld_percentages)
+#Saving the model results
+write_csv(x = mdl_percentages, 
+          file = here::here('data', 'products', 'mdl_variables_effects_percentages.csv'))
+
+#Quick dataviz
+mld_percentages %>%
+  ggplot(aes(x = variable, y = percentage_explained, 
+             color = diel_period, fill = diel_period)) + 
+  facet_wrap(~ species) + 
+  geom_bar()+
+  scale_color_viridis_d(option = "C")+
+  scale_fill_viridis_d(option = "C")+
+  guides(fill = F, col = F)+
+  theme_bw()+
+  theme(legend.position = "bottom")
 
 
-
+##Legacy models ####
 #lme4 package version
 #global_mdl2 <- lmer(formula = det_depth ~ lake_therm_thickness_smoothed + diel_period + EaWe_diff + lake_therm_depth_smoothed_center + (1 + lake_therm_thickness_smoothed + diel_period + EaWe_diff + lake_therm_depth_smoothed_center|fishid),
 #                    data = detections_mdl, REML = F) #intercept varying among years and among fish_id within years (nested random effects)
