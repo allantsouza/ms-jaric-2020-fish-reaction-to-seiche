@@ -127,7 +127,7 @@ st_read(con, query = "SELECT lt_shoreline_pol_smooth FROM at_macfish.laketable W
 
 # Lake depth raster
 depth_raster <- rpostgis::pgGetRast(con, c("at_macfish", "depthrast"), clauses = "WHERE lt_lake = 'Chabarovice'")
-raster::writeRaster(x = depth_raster, filename = here("data/raw/sp/lake_raster.tif"), format = "GTiff", overwrite = T)
+raster::writeRaster(x = depth_raster, filename = here("data/raw/db/lake_raster.tif"), format = "GTiff", overwrite = T)
 
 
 
