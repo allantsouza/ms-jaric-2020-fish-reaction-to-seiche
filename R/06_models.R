@@ -2000,27 +2000,40 @@ xlsx::write.xlsx(x = all_mlds_results$percentage_explained,
 #           file = here::here('data', 'products', 'mdl_variables_effects_percentages.csv'))
 
 #Quick dataviz
-mld_percentages %>%
+full_join(x = all_mlds_results$percentage_explained %>%
+            rename(parameter = variable), 
+          y = all_mlds_results$fixed_effects %>%
+            mutate(parameter = fct_recode(.f = parameter,
+                                          "Seiche strength" = "det_therm_deviation_center",
+                                          "Thermocline strength (ºC)" = "det_therm_strength",
+                                          "Thermocline thickness (m)" = "lake_therm_thickness_smoothed",
+                                          "Thermocline depth (m)" = "lake_therm_depth_smoothed_center"))) %>%
   mutate(diel_period = fct_recode(.f = diel_period, 
                                   "Day" = "day", "Night" = "night")) %>%
   mutate(species = fct_recode(.f = species, 
                               "Pike" = "pike", "Roach" = "roach",
                               "Rudd" = "rudd", "Tench" = "tench", 
                               "Wels catfish" = "wels")) %>%
+  filter(!species == "Roach") %>%
+  mutate(parameter = fct_relevel(parameter,
+              "Seiche strength",
+              "Thermocline strength (ºC)",
+              "Thermocline thickness (m)",
+              "Thermocline depth (m)")) %>%
+  mutate(p_significance = ifelse(test = p_value <= 0.05, yes = "p < 0.05", no = "ns")) %>%
   ggplot(aes(x = diel_period, y = percentage_explained, 
-             color = variable, fill = variable)) + 
-  facet_wrap(~ species) +
-  geom_bar(position="fill", stat="identity")+
-  labs(title = "Linear Mixed Effects model", subtitle = "Milada lake",
-       x = "Diel period", y = "% explained", fill = "", color = "") +
-  scale_color_viridis_d(option = "C")+
-  scale_fill_viridis_d(option = "C")+
+             color = p_significance, fill = parameter)) + 
+  facet_wrap(~ species, nrow = 1) +
+  geom_bar(position="fill", stat="identity", size = 1.2)+
+  labs(x = "Diel period", y = "Standardized effects (%)", fill = "Parameter", color = "Significance") +
+  scale_color_manual(values = c(NA, "red"))+
+  scale_fill_viridis_d(option = "C", alpha = 0.85)+
   scale_y_continuous(labels = scales::percent)+
   theme_bw()+
   theme(legend.position = "bottom")+
   ggsave(filename = here::here('outputs', 'models_percent_explained.jpeg'), 
-         device = "jpeg", units = "cm", dpi = "retina", width = 18, height = 12)
-
+         device = "jpeg", units = "cm", dpi = "retina", width = 32, height = 18)
+  
 
 # ##Legacy models ####
 # #lme4 package version
