@@ -130,7 +130,7 @@ load_hobo_data <- function(){
 }
 
 load_temperature_data <- function(){
-  read_csv(here("data", "raw", "db", "temperature_data.csv"), col_types = c("cTdd"))
+  read_csv(here("data", "products", "temperature_data.csv"), col_types = c("cTddd"))
 }
 
 load_wind_data <- function(){

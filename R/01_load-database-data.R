@@ -60,32 +60,6 @@ write_csv(x = hobo_data, path = here("data", "raw", "db", "hobo_data.csv"))
 
 # Interpolated temperatures -----------------------------------------------
 
-# load interpolated temperatures from the desired range of Dates
-# TODO: interpolate hobo_data locally so it is clear how that was done
-sql_query_temperatures <- paste0(
-  "SELECT 
-  hte_pos_name as location,
-  hte_timestamp_utc ts,
-  hte_depth depth,
-  hte_temperature temperature  
-  FROM at_macfish.hobo_temperatures
-  WHERE hte_pos_name IN ('East', 'West') AND
-  hte_timestamp_utc BETWEEN  '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "';") 
-
-temperatures <- data.table(dbGetQuery(con, sql_query_temperatures, stringsAsFactors = F))
-tz(temperatures$ts) <- "UTC"
-#Since there are some time frames in which the temperature increases over depth for some steps ( location == "West" & ts == "2015-06-23 02:35:00")
-setkey(temperatures, location, ts, depth)
-temperatures[, non_monotonic_decrease := any(diff(temperature) > 0), by = .(location, ts)]
-temperatures[non_monotonic_decrease == T] # TODO:
-#remove those steps and interpolate linearly created gaps
-temperatures[, cum.min.temp := cummin(temperature), by = .(location, ts)]  
-temperatures[cum.min.temp < temperature, temperature := cum.min.temp]
-#since you are interested in last occurence of that temperature, you can exclude those above
-temperatures_monotonic <- temperatures[, .(depth = max(depth)) , by = .(location, ts, temperature)]
-
-write_csv(x = temperatures_monotonic, path = here("data", "raw", "db", "temperature_data.csv"))
-
 sql_query_hobodeployements <- sql_query_temperatures <- paste0(
   "SELECT 
   lp_pos_name as location,
