@@ -66,7 +66,7 @@ compute_thermocline_dplyr <- function(depth, temperature, diff_threshold = 2, de
   temperature_diff <- c(diff(temperatures_new)/depth_res, 0)
   is_thermocline <- -diff_threshold > temperature_diff
   # add also ending point from which the thermocline was not with diff.threshodl slope
-  is_thermocline[shift(is_thermocline, n = 1, fill = F, type = "lag") == T] <- T
+  is_thermocline[data.table::shift(is_thermocline, n = 1, fill = F, type = "lag") == T] <- T
   
   if(!any(is_thermocline)){
     result <- tibble(step_order = 1,
@@ -146,9 +146,10 @@ interpolate_temperature_profile <- function(depth, temperature, depth_res = 0.1)
     stop("Depth must be in decreasing order")
   }
   depths_new <- seq(floor(min(depth)), ceiling(max(depth)), depth_res)
-  temperature_model <- splinefun(x = depth, y = cummin(temperature), method = "hyman", ties = mean)
-  temperatures_new <- temperature_model(depths_new)
-  return(list(depth = depths_new, temperature = temperatures_new, slope = c(diff(temperatures_new)/depth_res, 0)))
+  temperature_monotonic <- cummin(temperature)
+  temperature_profile_fun <- splinefun(x = depth, y = temperature_monotonic, method = "hyman", ties = mean)
+  temperature_new <- temperature_profile_fun(depths_new)
+  return(list(depth = depths_new, temperature = temperature_new, slope = c(diff(temperatures_new)/depth_res, 0)))
 }
 
 
