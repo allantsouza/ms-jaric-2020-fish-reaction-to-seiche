@@ -9,6 +9,9 @@ library(parallel)
 library(tictoc)#to check time elapsed
 library(optimx)#optmization for lmer
 library(xlsx)
+library(mgcv)
+library(mgcViz)
+library(itsadug)
 
 #Function to run lmer in multiple cores
 f_lmer_mc <- function(data, calls, mc.cores) {
