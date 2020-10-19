@@ -9,6 +9,7 @@
 
 hobo_data <- data.table(load_hobo_data())
 temperatures_monotonic <- data.table(load_temperature_data())
+temperatures_monotonic$slope <- NULL
 
 a1 <- -3.983035
 a2 <- 301.797
@@ -64,15 +65,15 @@ write_csv(thermocline, path = here("data","products", "thermocline_slope.csv"))
 # Seasonal thermocline ----------------------------------------------------
 # calculation of mean thermocline temperature
 setkey(thermocline, location, step_order, slope, thermocline_ts)
-window_size <- 14*86400
+window_size <- 7*86400
 # tcenter
-thermocline[, tcenter := roll_time_window(x = (temperature_start+temperature_end)/2, 
-                                       times = thermocline_ts,
-                                       span = window_size,
-                                       FUN = function(x) median(x, na.rm = T)),
-            by = .(location, step_order, slope)]
-
-
+# thermocline[, tcenter := roll_time_window(x = (temperature_start+temperature_end)/2, 
+#                                        times = thermocline_ts,
+#                                        span = window_size,
+#                                        FUN = function(x) median(x, na.rm = T)),
+#             by = .(location, step_order, slope)]
+# 
+# 
 
 # tstart
 thermocline[, tstart := roll_time_window(x = temperature_start,
@@ -94,6 +95,7 @@ thermocline[, tcrit := roll_time_window(x = temperature_crit,
                                       FUN = function(x) median(x, na.rm = T)),
             by = .(location, step_order, slope)]
 
+thermocline[, tcenter := (tend + tstart)/2]
 
 # melt so the roll is in long format
 ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") ],
@@ -132,15 +134,19 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
 
 
 # Get depth of thermocline ------------------------------------------------
-
+setkey(temperatures_monotonic, location, ts, depth)
+temperatures_monotonic[, temperature_strictly_decreasing := temperature - 0.001 * (1:.N), by = .(ts, location)]
 # Previous code computed lake-wide temperature of thermocline for each 5min interval
 # Now get depth of occurence of that temperature
 thermocline_full[, ':=' (temperature_roll = lake_therm_temperature_smoothed)]
-temperatures_monotonic[, ':=' (thermocline_ts = ts, temperature_roll = temperature)]
+temperatures_monotonic[, ':=' (thermocline_ts = ts, temperature_roll = temperature_strictly_decreasing)]
 setkey(thermocline_full, location, thermocline_ts, temperature_roll)
 setkey(temperatures_monotonic, location, thermocline_ts, temperature_roll)
 thermocline_temperatures_rolled <- temperatures_monotonic[thermocline_full, , on = c("location", "thermocline_ts", "temperature_roll"), roll = "nearest"]
 thermocline_temperatures_rolled[, temperature_roll := NULL]
+
+# Hotfix cure for some wierd profiles 
+thermocline_temperatures_rolled[depth > 15, depth := 15]
 
 #remove joins futher that 15 minutes
 thermocline_temperatures_rolled <- thermocline_temperatures_rolled[abs(as.numeric(ts) - as.numeric(thermocline_ts)) < 60*15 ]
@@ -216,7 +222,7 @@ thermocline_data <- merge(thermocline_data_thickness, thermocline_location_wide_
 
 
 
-write_csv(x = thermocline_data, path = here("data", "products", "thermocline_data.csv"))
+write_csv(x = thermocline_data, file = here("data", "products", "thermocline_data.csv"))
 
 # Overview
 
