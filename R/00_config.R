@@ -20,7 +20,7 @@ library(raster)
 
 DATE_RANGE <- c("2015-06-16","2015-10-15")
 
-PAR_THERMOCLINE_SLOPE <- 1
+PAR_THERMOCLINE_SLOPE <- 1.5
 
 #Identification of fast Seiche shift periods - "shift speed" has to be larger than a threshold speed (PAR_SHIFT_HEIGHT, which is X meters per hour)
 PAR_SHIFT_SPEED <- 0.5

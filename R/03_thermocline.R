@@ -63,7 +63,7 @@ ggplot(data = wierd_profile,
 
 # calculation of mean thermocline temperature
 setkey(thermocline, location, step_order, slope, thermocline_ts)
-window_size <- 7*86400
+window_size <- 3*86400
 # tcenter
 # thermocline[, tcenter := roll_time_window(x = (temperature_start+temperature_end)/2, 
 #                                        times = thermocline_ts,
@@ -136,15 +136,19 @@ ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")
 
 
 # Get depth of thermocline ------------------------------------------------
-setkey(temperatures_monotonic, location, ts, depth)
-temperatures_monotonic[, temperature_strictly_decreasing := temperature - 0.001 * (1:.N), by = .(ts, location)]
+setDT(temperatures_monotonic)
+temperatures_monotonic_strictly <- temperatures_monotonic[, .(depth = max(depth)), by = .(ts, location, temperature)]
+setkey(temperatures_monotonic_strictly, location, ts, depth)
+temperatures_monotonic_strictly$slope <- NULL
+#temperatures_monotonic_strictly <- temperatures_monotonic_strictly[depth > 3]
+temperatures_monotonic_strictly[, temperature_strictly_decreasing := temperature - 0.001 * (1:.N), by = .(ts, location)]
 # Previous code computed lake-wide temperature of thermocline for each 5min interval
 # Now get depth of occurence of that temperature
 thermocline_full[, ':=' (temperature_roll = lake_therm_temperature_smoothed)]
-temperatures_monotonic[, ':=' (thermocline_ts = ts, temperature_roll = temperature_strictly_decreasing)]
+temperatures_monotonic_strictly[, ':=' (thermocline_ts = ts, temperature_roll = temperature_strictly_decreasing)]
 setkey(thermocline_full, location, thermocline_ts, temperature_roll)
-setkey(temperatures_monotonic, location, thermocline_ts, temperature_roll)
-thermocline_temperatures_rolled <- temperatures_monotonic[thermocline_full, , on = c("location", "thermocline_ts", "temperature_roll"), roll = "nearest"]
+setkey(temperatures_monotonic_strictly, location, thermocline_ts, temperature_roll)
+thermocline_temperatures_rolled <- temperatures_monotonic_strictly[thermocline_full, , on = c("location", "thermocline_ts", "temperature_roll"), roll = "nearest"]
 thermocline_temperatures_rolled[, temperature_roll := NULL]
 
 # Hotfix cure for some wierd profiles 
