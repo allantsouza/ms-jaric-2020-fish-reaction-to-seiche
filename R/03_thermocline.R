@@ -9,7 +9,6 @@
 
 hobo_data <- data.table(load_hobo_data())
 temperatures_monotonic <- data.table(load_temperature_data())
-temperatures_monotonic$slope <- NULL
 
 a1 <- -3.983035
 a2 <- 301.797
@@ -58,11 +57,10 @@ ggplot(data = wierd_profile,
   geom_point(data = wierd_profile_smooth[], aes(group = rleid(is_thermocline), col = is_thermocline), alpha=0.3)
 
 
-write_csv(thermocline, path = here("data","products", "thermocline_slope.csv"))
-
-
 
 # Seasonal thermocline ----------------------------------------------------
+
+
 # calculation of mean thermocline temperature
 setkey(thermocline, location, step_order, slope, thermocline_ts)
 window_size <- 7*86400
@@ -76,40 +74,44 @@ window_size <- 7*86400
 # 
 
 # tstart
-thermocline[, tstart := roll_time_window(x = temperature_start,
+thermocline[, tstart_smoothed := roll_time_window(x = temperature_start,
                                        times = thermocline_ts,
                                        span = window_size,
                                        FUN = function(x) median(x, na.rm = T)),
                         by = .(location, step_order, slope)]
 
 # tend
-thermocline[, tend := roll_time_window(x = temperature_end, 
+thermocline[, tend_smoothed := roll_time_window(x = temperature_end, 
                                      times = thermocline_ts,
                                      span = window_size,
                                      FUN = function(x) median(x, na.rm = T)),
             by = .(location, step_order, slope)]
 # tcrit
-thermocline[, tcrit := roll_time_window(x = temperature_crit, 
+thermocline[, tcrit_smoothed := roll_time_window(x = temperature_crit, 
                                       times = thermocline_ts,
                                       span = window_size,
                                       FUN = function(x) median(x, na.rm = T)),
             by = .(location, step_order, slope)]
 
-thermocline[, tcenter := (tend + tstart)/2]
+thermocline[, tcenter_smoothed := (tend_smoothed + tstart_smoothed)/2]
+
+write_csv(thermocline, file = here("data","products", "thermocline_slope.csv"))
 
 # melt so the roll is in long format
 ggplot(data = thermocline[step_order == 1 & location %in% c("East", "West") ],
        mapping = aes(x = thermocline_ts,
-                     y = tcenter,
+                     y = tcenter_smoothed,
                      col = location)) +
   geom_point(shape = ".")
 
-roll_cols <- c("tcenter", "tstart", "tend", "tcrit")
+roll_cols <- c("tcenter_smoothed", "tstart_smoothed", "tend_smoothed", "tcrit_smoothed")
 thermocline_full <- melt(thermocline,
                          id.vars = c("lake", "location", "thermocline_ts", "step_order", "slope"),
                          variable.name = "therm_part",
                          value.name = "temperature_smoothed",
                          measure.vars = roll_cols)
+
+thermocline_full[, therm_part := gsub("_smoothed", "", x = therm_part)]
 
 #TODO: overview of gaps in seconds - should be 0! or interpolate otherwise to have full dataset
 thermocline_full[step_order == 1,
