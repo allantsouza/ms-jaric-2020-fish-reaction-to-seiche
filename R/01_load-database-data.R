@@ -31,7 +31,7 @@ sql_query_hobo_data <- paste0(
       ) a 
   INNER JOIN (SELECT *
       FROM at_macfish.hobodata
-      WHERE hd_timestamp_utc BETWEEN '", DATE_RANGE[1], "' AND '", DATE_RANGE[2], "' AND
+      WHERE hd_timestamp_utc BETWEEN '", as.Date(DATE_RANGE[1]) - 7, "' AND '", as.Date(DATE_RANGE[2]) + 7, "' AND
       hd_valid
       ) l 
   ON l.hl_logger_sn = a.hl_logger_sn AND
