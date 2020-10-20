@@ -52,7 +52,7 @@ hobo_data$interval <- lubridate::round_date(hobo_data$ts, "5 minutes")
 setkey(hobo_data, location, depth)
 hobo_data[, order := 1:.N, by =.(location, as.numeric(interval))]
 
-write_csv(x = hobo_data, path = here("data", "raw", "db", "hobo_data.csv"))
+write_csv(x = hobo_data, file = here("data", "raw", "db", "hobo_data.csv"))
 
 
 
@@ -74,7 +74,7 @@ sql_query_hobodeployements <- sql_query_temperatures <- paste0(
 
 hobodeployements <- data.table(dbGetQuery(con, sql_query_hobodeployements, stringsAsFactors = F))
 
-write_csv(x = hobodeployements, path = here("data", "raw", "db", "hobodeployements.csv"))
+write_csv(x = hobodeployements, file = here("data", "raw", "db", "hobodeployements.csv"))
 
 
 # Spatial objects ---------------------------------------------------------
@@ -120,7 +120,7 @@ wind_data <- rename(wind_data,
        ts = md_timestamp_utc,
        dataset_id = mds_dataset_id)
 
-write_csv(x = wind_data, path = here("data", "raw", "db", "wind_data.csv"))
+write_csv(x = wind_data, file = here("data", "raw", "db", "wind_data.csv"))
 
 
 
@@ -141,7 +141,7 @@ for(i in 1:length(tag_sns)){
   
   positions <- dbGetQuery(con, sql_query_positions, stringsAsFactors = F)
   if(nrow(positions) > 0){
-    write_csv(x = positions, path = here("data", "raw", "db", "fish", "positions", paste0(tag_sns[i], ".csv")))
+    write_csv(x = positions, file = here("data", "raw", "db", "fish", "positions", paste0(tag_sns[i], ".csv")))
   }
 }
 
@@ -159,6 +159,6 @@ for(i in 1:length(tag_sns)){
   
   detections <-dbGetQuery(con, sql_query_detections, stringsAsFactors = F)
   if(nrow(detections) > 0){
-    write_csv(x = detections, path = here("data", "raw", "db", "fish", "detections", paste0(tag_sns[i], ".csv")))
+    write_csv(x = detections, file = here("data", "raw", "db", "fish", "detections", paste0(tag_sns[i], ".csv")))
   }
 }
