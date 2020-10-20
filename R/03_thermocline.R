@@ -126,7 +126,7 @@ thermocline_full[, lake_therm_temperature_smoothed := mean(temperature_smoothed)
 thermocline_full <- thermocline_full[!is.na(temperature_smoothed)]
 ggplot(data = thermocline_full[step_order == 1 & location %in% c("East", "West")],
        mapping = aes(x = thermocline_ts,
-                     y = lake_therm_temperature_smoothed,
+                     y = temperature_smoothed,
                      col = therm_part,
                      linetype  = location)) +
   geom_line() +
@@ -164,7 +164,7 @@ ggplot(data = thermocline_temperatures_rolled[!is.na(lake_therm_temperature_smoo
                      col = therm_part)) +
   geom_line() +
   facet_wrap(~ location, ncol = 1) +
-  scale_y_reverse() +
+  scale_y_reverse(limits=c(20,0)) +
   xlab("Date") + 
   ylab("Depth") +
   scale_color_manual(values = RColorBrewer::brewer.pal(n = 4, name = "Spectral"),
@@ -228,18 +228,18 @@ thermocline_data <- merge(thermocline_data_thickness, thermocline_location_wide_
 
 
 
-write_csv(x = thermocline_data, file = here("data", "products", "thermocline_data.csv"))
+write_csv(x = thermocline_data %>% filter(thermocline_ts %between% DATE_RANGE), file = here("data", "products", "thermocline_data.csv"))
 
 # Overview
 
 # Deviation x Thickness
 ggplot(thermocline_data[abs(deviation) > 0.7], aes(x = deviation, y = thickness, col = location)) +
-  geom_point() + 
+  geom_point(pch = ".") + 
   geom_smooth(method = "lm")
 
 # Lake therm depth vs instant depth (basically deviation)
 ggplot(thermocline_data[therm_part == "center"], aes(x = lake_therm_depth_smoothed, y = depth, col = location)) +
-  geom_point() + 
+  geom_point(pch = ".") + 
   facet_wrap(~location)
 
 # Overview of thickness
@@ -259,8 +259,10 @@ ggplot(thermocline_data[therm_part == "center",], aes(x = thermocline_ts, y = st
 
 # Strengh vs deviation - not correlated - good ;)
 ggplot(thermocline_data[therm_part == "center",], aes(x = deviation, y = strength, col = location)) + 
-  geom_point()
+  geom_point(pch = ".") +
+  geom_density2d()
 
 # Thickness vs deviation - not correlated - good ;)
 ggplot(thermocline_data[therm_part == "center",], aes(x = deviation, y = thickness, col = location)) + 
-  geom_point()
+  geom_point(pch = ".") +
+  geom_density2d()
