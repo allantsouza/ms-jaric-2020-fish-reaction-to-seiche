@@ -2037,6 +2037,10 @@ full_join(x = all_mlds_results$percentage_explained %>%
   ggsave(filename = here::here('outputs', 'models_percent_explained.jpeg'), 
          device = "jpeg", units = "cm", dpi = "retina", width = 32, height = 18)
   
+#Transfom variables
+library(tidyverse)
+detections<-detections %>% mutate_at(c(6,18,30,33), funs(c(scale(.))))  #scale predictors only
+
 #GAMMs with autocorrelation structure ####
 ##Pike - day ####
 #Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
@@ -2046,11 +2050,12 @@ mdl_pike_day_simple <- bam(formula = det_depth ~
                              s(det_therm_strength, k = 10, bs = 'cr') +
                              s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                              s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(fishid, k = 10, bs = 're') +
-                             s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                             s(det_therm_strength, fishid, k = 10, bs = 're') +
-                             s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                             s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) + 
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts) +
+                             s(fishid, dets_ts, bs="fs", m=1),
                            data = detections %>%
                              filter(species == "pike" &
                                       diel_period == 'day' &
@@ -2072,11 +2077,12 @@ mld_gamm_pike_day <- bam(formula = det_depth ~
                            s(det_therm_strength, k = 10, bs = 'cr') +
                            s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                            s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                           s(fishid, k = 10, bs = 're') +
-                           s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                           s(det_therm_strength, fishid, k = 10, bs = 're') +
-                           s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                           s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                           s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                           s(det_therm_strength, fishid,  bs="fs", m=1) +
+                           s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                           s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                           s(dets_ts) +
+                           s(fishid, dets_ts, bs="fs", m=1),
                          data = detections %>%
                            filter(species == "pike" &
                                     diel_period == 'day' &
@@ -2091,7 +2097,7 @@ mld_gamm_pike_day <- bam(formula = det_depth ~
 toc()
 
 #Model summary
-summary.gam(mld_gamm_pike_day)
+summary.gam(mld_gamm_pike_day)               
 #graphical visualization of the model
 plot(mld_gamm_pike_day, shade = TRUE, pages = 1, scale = 0)
 #Checking the autocorrelation (split by fishid)
@@ -2114,11 +2120,12 @@ mdl_pike_night_simple <- bam(formula = det_depth ~
                              s(det_therm_strength, k = 10, bs = 'cr') +
                              s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                              s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(fishid, k = 10, bs = 're') +
-                             s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                             s(det_therm_strength, fishid, k = 10, bs = 're') +
-                             s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                             s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts) +
+                             s(fishid, dets_ts, bs="fs", m=1),
                            data = detections %>%
                              filter(species == "pike" &
                                       diel_period == 'night' &
@@ -2140,11 +2147,12 @@ mld_gamm_pike_night <- bam(formula = det_depth ~
                              s(det_therm_strength, k = 10, bs = 'cr') +
                              s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                              s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(fishid, k = 10, bs = 're') +
-                             s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                             s(det_therm_strength, fishid, k = 10, bs = 're') +
-                             s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                             s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts) +
+                             s(fishid, dets_ts, bs="fs", m=1),
                            data = detections %>%
                              filter(species == "pike" &
                                       diel_period == 'day' &
@@ -2181,11 +2189,12 @@ mdl_wels_day_simple <- bam(formula = det_depth ~
                              s(det_therm_strength, k = 10, bs = 'cr') +
                              s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                              s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(fishid, k = 10, bs = 're') +
-                             s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                             s(det_therm_strength, fishid, k = 10, bs = 're') +
-                             s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                             s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts) +
+                             s(fishid, dets_ts, bs="fs", m=1),
                            data = detections %>%
                              filter(species == "wels" &
                                       diel_period == 'day' &
@@ -2207,11 +2216,12 @@ mld_gamm_wels_day <- bam(formula = det_depth ~
                            s(det_therm_strength, k = 10, bs = 'cr') +
                            s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                            s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                           s(fishid, k = 10, bs = 're') +
-                           s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                           s(det_therm_strength, fishid, k = 10, bs = 're') +
-                           s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                           s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                           s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                           s(det_therm_strength, fishid,  bs="fs", m=1) +
+                           s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                           s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                           s(dets_ts) +
+                           s(fishid, dets_ts, bs="fs", m=1),
                          data = detections %>%
                            filter(species == "wels" &
                                     diel_period == 'day' &
@@ -2249,11 +2259,12 @@ mdl_wels_night_simple <- bam(formula = det_depth ~
                                s(det_therm_strength, k = 10, bs = 'cr') +
                                s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                                s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                               s(fishid, k = 10, bs = 're') +
-                               s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                               s(det_therm_strength, fishid, k = 10, bs = 're') +
-                               s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                               s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                               s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                               s(det_therm_strength, fishid,  bs="fs", m=1) +
+                               s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                               s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                               s(dets_ts) +
+                               s(fishid, dets_ts, bs="fs", m=1),
                              data = detections %>%
                                filter(species == "wels" &
                                         diel_period == 'night' &
@@ -2275,11 +2286,12 @@ mld_gamm_wels_night <- bam(formula = det_depth ~
                              s(det_therm_strength, k = 10, bs = 'cr') +
                              s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                              s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(fishid, k = 10, bs = 're') +
-                             s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                             s(det_therm_strength, fishid, k = 10, bs = 're') +
-                             s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                             s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts) +
+                             s(fishid, dets_ts, bs="fs", m=1),
                            data = detections %>%
                              filter(species == "wels" &
                                       diel_period == 'day' &
@@ -2316,11 +2328,12 @@ mdl_tench_day_simple <- bam(formula = det_depth ~
                              s(det_therm_strength, k = 10, bs = 'cr') +
                              s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                              s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(fishid, k = 10, bs = 're') +
-                             s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                             s(det_therm_strength, fishid, k = 10, bs = 're') +
-                             s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                             s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts) +
+                             s(fishid, dets_ts, bs="fs", m=1),
                            data = detections %>%
                              filter(species == "tench" &
                                       diel_period == 'day' &
@@ -2342,11 +2355,12 @@ mld_gamm_tench_day <- bam(formula = det_depth ~
                            s(det_therm_strength, k = 10, bs = 'cr') +
                            s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                            s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                           s(fishid, k = 10, bs = 're') +
-                           s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                           s(det_therm_strength, fishid, k = 10, bs = 're') +
-                           s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                           s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                           s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                           s(det_therm_strength, fishid,  bs="fs", m=1) +
+                           s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                           s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                           s(dets_ts) +
+                           s(fishid, dets_ts, bs="fs", m=1),
                          data = detections %>%
                            filter(species == "tench" &
                                     diel_period == 'day' &
@@ -2384,11 +2398,12 @@ mdl_tench_night_simple <- bam(formula = det_depth ~
                                s(det_therm_strength, k = 10, bs = 'cr') +
                                s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                                s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                               s(fishid, k = 10, bs = 're') +
-                               s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                               s(det_therm_strength, fishid, k = 10, bs = 're') +
-                               s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                               s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                               s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                               s(det_therm_strength, fishid,  bs="fs", m=1) +
+                               s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                               s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                               s(dets_ts) +
+                               s(fishid, dets_ts, bs="fs", m=1),
                              data = detections %>%
                                filter(species == "tench" &
                                         diel_period == 'night' &
@@ -2410,11 +2425,12 @@ mld_gamm_tench_night <- bam(formula = det_depth ~
                              s(det_therm_strength, k = 10, bs = 'cr') +
                              s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                              s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(fishid, k = 10, bs = 're') +
-                             s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                             s(det_therm_strength, fishid, k = 10, bs = 're') +
-                             s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                             s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts) +
+                             s(fishid, dets_ts, bs="fs", m=1),
                            data = detections %>%
                              filter(species == "tench" &
                                       diel_period == 'day' &
@@ -2451,11 +2467,12 @@ mdl_rudd_day_simple <- bam(formula = det_depth ~
                               s(det_therm_strength, k = 10, bs = 'cr') +
                               s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                               s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                              s(fishid, k = 10, bs = 're') +
-                              s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                              s(det_therm_strength, fishid, k = 10, bs = 're') +
-                              s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                              s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                              s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                              s(det_therm_strength, fishid,  bs="fs", m=1) +
+                              s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                              s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                              s(dets_ts) +
+                              s(fishid, dets_ts, bs="fs", m=1),
                             data = detections %>%
                               filter(species == "rudd" &
                                        diel_period == 'day' &
@@ -2477,11 +2494,12 @@ mld_gamm_rudd_day <- bam(formula = det_depth ~
                             s(det_therm_strength, k = 10, bs = 'cr') +
                             s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                             s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                            s(fishid, k = 10, bs = 're') +
-                            s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                            s(det_therm_strength, fishid, k = 10, bs = 're') +
-                            s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                            s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                            s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                            s(det_therm_strength, fishid,  bs="fs", m=1) +
+                            s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                            s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                            s(dets_ts) +
+                            s(fishid, dets_ts, bs="fs", m=1),
                           data = detections %>%
                             filter(species == "rudd" &
                                      diel_period == 'day' &
@@ -2519,11 +2537,12 @@ mdl_rudd_night_simple <- bam(formula = det_depth ~
                                 s(det_therm_strength, k = 10, bs = 'cr') +
                                 s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                                 s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                                s(fishid, k = 10, bs = 're') +
-                                s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                                s(det_therm_strength, fishid, k = 10, bs = 're') +
-                                s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                                s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                                s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                                s(det_therm_strength, fishid,  bs="fs", m=1) +
+                                s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                                s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                                s(dets_ts) +
+                                s(fishid, dets_ts, bs="fs", m=1),
                               data = detections %>%
                                 filter(species == "rudd" &
                                          diel_period == 'night' &
@@ -2545,11 +2564,12 @@ mld_gamm_rudd_night <- bam(formula = det_depth ~
                               s(det_therm_strength, k = 10, bs = 'cr') +
                               s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
                               s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                              s(fishid, k = 10, bs = 're') +
-                              s(lake_therm_thickness_smoothed, fishid, k = 10, bs = 're') +
-                              s(det_therm_strength, fishid, k = 10, bs = 're') +
-                              s(lake_therm_depth_smoothed_center, fishid, k = 10, bs = 're') +
-                              s(det_therm_deviation_center, fishid, k = 10, bs = 're'),
+                              s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                              s(det_therm_strength, fishid,  bs="fs", m=1) +
+                              s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
+                              s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                              s(dets_ts) +
+                              s(fishid, dets_ts, bs="fs", m=1),
                             data = detections %>%
                               filter(species == "rudd" &
                                        diel_period == 'day' &
