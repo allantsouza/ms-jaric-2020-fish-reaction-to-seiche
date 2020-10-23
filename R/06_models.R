@@ -1,17 +1,3 @@
-#Libraries
-library(lme4)
-library(lmerTest)
-library(MuMIn)
-library(sjPlot)
-library(hier.part)
-library(parallel)
-library(tictoc)#to check time elapsed
-library(optimx)#optmization for lmer
-library(mgcv)
-library(mgcViz)
-library(itsadug)
-library(tidyverse)
-
 # Loading the data ####
 fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccdc") %>%
   mutate(data_path = here("data/products/fish",paste0(tag_sn, ".csv")))
@@ -24,8 +10,6 @@ detections <- fish_raw %>%
   reduce(rbind) %>%
   inner_join(fish_raw[,c("tag_sn","fishid", "species")])
 
-
-  
 #Transfom variables
 detections<-detections %>% mutate_at(c(6,18,30,33), funs(c(scale(.))))  #scale predictors only
 
