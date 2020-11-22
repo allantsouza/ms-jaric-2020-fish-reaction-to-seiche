@@ -1,4 +1,62 @@
 # Functions
+# Functions -----------------------------------------------
+
+
+
+#' Compute thermocline for profile using rLakeAnalyzer::wtr.layer function
+#' @param x data.frame with two columns depth and temperature representing one time frame
+
+compute_thermocline_wtr_layer <- function(x){
+  wl <-  wtr.layer(depth = x$depth, measure = x$temperature, zmax = 25, thres = 0.1, z0 = 4)
+  temperature_center <- approx(x = x$depth, y = x$temperature, xout = wl$cline)$y
+  segments <- wl$segments[[1]]
+  thermocline_segment_idx <- findInterval(vec = segments$segment_depth, x = wl$cline)
+  
+  tibble(
+    depth_start = wl$mld,
+    depth_crit = wl$cline,
+    depth_end = segments[thermocline_segment_idx + 1,]$segment_depth,
+    temperature_start = segments[thermocline_segment_idx,]$segment_measure,
+    temperature_crit = temperature_center,
+    temperature_end = segments[thermocline_segment_idx + 1,]$segment_measure
+  )  %>%
+    mutate(thickness = depth_end - depth_start, 
+           strength = temperature_start - temperature_end) %>%
+    mutate(mean_gradient = strength / thickness)
+}
+
+
+
+#' Compute thermocline for profile using rLakeAnalyzer::thermo.depth and rLakeAnalyzer::meta.depths functions
+#' @param x data.frame with two columns depth and temperature representing one time frame
+
+compute_thermocline_thermo_depth <- function(x){
+  slope <- 0.2
+  seasonal <- T
+  
+  depth_crit <- thermo.depth(wtr = x$temperature, x$depth, seasonal = seasonal)
+  temperature_crit <- approx(x = x$depth,
+                               y = x$temperature,
+                               xout = depth_crit)$y
+  
+  meta_depths <- meta.depths(wtr = x$temperature,
+                             x$depth, slope = slope,
+                             seasonal = seasonal)
+  meta_temperatures <- approx(x = x$depth,
+                              y = x$temperature,
+                              xout = meta_depths)$y
+  
+  tibble(
+    depth_start = meta_depths[1],
+    depth_crit = depth_crit,
+    depth_end = meta_depths[2], 
+    temperature_start = meta_temperatures[1],
+    temperature_crit = temperature_crit,
+    temperature_end = meta_temperatures[2]) %>%
+    mutate(thickness = depth_end - depth_start, 
+           strength = temperature_start - temperature_end) %>%
+    mutate(mean_gradient = strength / thickness)
+}
 
 #' Compute thermocline given depth and temperature vector
 #'
@@ -34,7 +92,10 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
       temperature_start = as.numeric(NA),
       temperature_end = as.numeric(NA),
       depth_crit = as.numeric(NA),
-      temperature_crit = as.numeric(NA)
+      temperature_crit = as.numeric(NA),
+      thickness = NA,
+      strength = NA,
+      mean_gradient = NA
     )]
   } else {
     # assign new sequence of steps 1, 2, 3...
@@ -47,7 +108,10 @@ compute_thermocline <- function(depth, temperature, diff_threshold = 2, depth_re
       temperature_start = temperature[1],
       temperature_end = tail(temperature, 1),
       depth_crit = depth[which(slope == min(slope))[1]],
-      temperature_crit = temperature[which(slope == min(slope))[1]]
+      temperature_crit = temperature[which(slope == min(slope))[1]],
+      thickness = max(depth) - min(depth),
+      strength = temperature[1] - tail(temperature, 1),
+      mean_gradient =  (temperature[1] - tail(temperature, 1)) / (max(depth) - min(depth))
     ),
     by = step_order
     ]
