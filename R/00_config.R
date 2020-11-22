@@ -13,6 +13,7 @@ library(StreamMetabolism)
 library(ggspatial)
 library(rpostgis)
 library(raster)
+library(rLakeAnalyzer)
 
 
 
