@@ -30,8 +30,7 @@ distance_east <- logger_pos[logger_pos$locatin == "East",]$dist_from_zero
 
 
 thermocline <- here("data/products/thermocline_data.csv") %>%
-  read_csv(col_types = c("thermocline_ts" = "T")) %>%
-  filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE)
+  read_csv(col_types = c("thermocline_ts" = "T"))
 
 thermocline_wide <- thermocline %>% 
   pivot_wider(id_cols = c("thermocline_ts", 
@@ -91,7 +90,10 @@ for(i in 1:length(tag_sns)){
                                                                         detection_distances = dist_from_zero),
            det_therm_depth = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
                                                                          logger_values = c(depth_East, depth_West),
-                                                                         detection_distances = dist_from_zero)
+                                                                         detection_distances = dist_from_zero),
+           det_therm_gradient = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                  logger_values = c(depth_East, depth_West),
+                                                                  detection_distances = dist_from_zero),
            ) %>%
     mutate(det_therm_deviation = lake_therm_depth_smoothed - det_therm_depth)
   
