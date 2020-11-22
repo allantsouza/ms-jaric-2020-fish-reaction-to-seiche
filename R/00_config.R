@@ -1,7 +1,6 @@
 # Load libraries
 library(renv)
 library(tidyverse)
-library(ggplot2)
 library(ggthemes)
 library(lubridate)
 library(RPostgreSQL)
@@ -14,8 +13,17 @@ library(ggspatial)
 library(rpostgis)
 library(raster)
 library(rLakeAnalyzer)
-
-
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(sjPlot)
+library(hier.part)
+library(parallel)
+library(tictoc)#to check time elapsed
+library(optimx)#optmization for lmer
+library(mgcv)
+library(mgcViz)
+library(itsadug)
 
 # Global variables -------------------------------------------------------------
 
