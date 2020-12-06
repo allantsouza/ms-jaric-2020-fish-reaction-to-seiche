@@ -103,7 +103,9 @@ st_read(con, query = "SELECT lt_shoreline_pol_smooth FROM at_macfish.laketable W
 depth_raster <- rpostgis::pgGetRast(con, c("at_macfish", "depthrast"), clauses = "WHERE lt_lake = 'Chabarovice'")
 raster::writeRaster(x = depth_raster, filename = here("data/raw/db/lake_raster.tif"), format = "GTiff", overwrite = T)
 
-
+# Receiver 
+st_read(con, query = "SELECT * FROM at_macfish.hydrophonedeployment WHERE lt_lake = 'Chabarovice' AND hyd_depl_timestamp_utc BETWEEN '2015-06-30' AND '2015-07-02'
+") %>% st_write(dsn = here("data/raw/db/hydrophones.shp"), append = F)
 
 # Wind data ---------------------------------------------------------------
 
