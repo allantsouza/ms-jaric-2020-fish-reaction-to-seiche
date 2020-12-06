@@ -1,0 +1,290 @@
+---
+title: "Thermocline computation"
+author: "Vilem Ded"
+date: "9/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F)
+
+```
+
+```{r}
+library(here)
+source(here("R", "00_config.R"))
+source(here("R", "99_functions.R"))
+```
+
+## Thermocline Computation
+This document shows how was the thermocline measured, computed and interpolated into the whole lake. It also shows some issues found and describes the accepted solutions.
+```{r}
+# Loading all data
+temperatures <- load_temperature_data() %>% as_tibble
+
+logger_positions <- load_logger_positions()
+
+hobo_deployments <- read_csv(here("data", "raw", "db", "hobodeployements.csv")) %>%
+  filter(month(retrieval_ts) == 8)
+
+hobo_data <- as_tibble(load_hobo_data())
+
+lake_shp <- st_read(here("data/raw/db/lake_shape.shp"), quiet = T)
+lake_axis <- st_read(here("data/raw/sp/lake_axis.shp"), quiet = T)
+# get shifted axis into deep part
+pts <- data.frame(name = "blue", x = 40, y = 120)
+pts <- st_as_sf(pts, coords = c('x', 'y'), crs = 32633)
+lake_axis_shifted <- lake_axis
+lake_axis_shifted$geometry <- lake_axis_shifted$geometry + pts$geometry
+st_crs(lake_axis_shifted$geometry) <- st_crs(lake_axis$geometry)
+
+hydrophones <- st_read(here("data/raw/db/hydrophones.shp"), quiet = T)
+
+point_zero <- st_read(here("data/raw/sp/point_zero.shp"), quiet = T)
+
+logger_positions$dist_from_zero <- compute_distance_from_point_zero(positions = logger_positions, lake_axis = lake_axis, point_zero = point_zero)
+
+
+lake_raster <- raster::raster(here("data/raw/db/lake_raster.tif"))
+
+
+  
+```
+
+
+
+## Loggers and data
+lakeshape, logger positions, logger depths, measured data interpolation into depth
+
+#### Lake plan view
+```{r}
+# categorize depths
+lake_raster_df <- as_tibble(rasterToPoints(lake_raster, spatial = TRUE)) %>% 
+  dplyr::rename(depth = lake_raster) %>%
+  mutate(depth_cat = cut(depth, breaks = c(-Inf, 10, 15, 20, Inf), labels = c("0-5", "5-10", "10-20", ">20")))
+
+# Get raster axis profile
+axis_points <- st_line_sample(lake_axis_shifted, density = 1, type = "regular") %>% 
+  st_cast("POINT") %>%
+  as("Spatial")
+
+axis_points$distance <- (1:length(axis_points))-1
+axis_depth_profile <- extract(lake_raster, axis_points, sp = T, fun = mean)
+
+hydrophones_loggers <- rbind(hydrophones %>% mutate(device = "hydrophone") %>% dplyr::select(device, geometry), 
+                             logger_positions %>% mutate(device = "logger") %>% dplyr::select(device, geometry))
+gp_lake_plan_view <- ggplot() + 
+  geom_sf(data = lake_shp) +
+  geom_raster(data = lake_raster_df, aes(x = x, y = y, fill = depth_cat)) +
+  scale_fill_manual(values = c("0-5" = "#E8E8E8", "5-10" = "#C0C0C0", "10-20" = "#808080", ">20" = "#484848")) +
+  geom_sf(data = hydrophones_loggers, aes(pch = device, size = device), fill = "grey") +
+  scale_shape_manual(values = c("logger" = 23, "hydrophone" = 16), labels = c("logger" = "Loggers", "hydrophone" = "Hydrophones")) +
+  scale_size_manual(values = c("logger" = 3, "hydrophone" = 2), guide = NULL) +
+  geom_sf(data = lake_axis_shifted, aes(lty = "Lake axis")) + 
+  scale_linetype_manual(values = c("Lake axis" = 2)) +
+  annotation_scale(location = "bl", width_hint = 0.5) +
+  annotation_north_arrow(location = "bl",
+                         which_north = "true",
+                         pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+                         style = north_arrow_fancy_orienteering) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  labs(fill = "Depth (m)", 
+       shape = "Devices",
+       linetype = "")
+
+gp_lake_plan_view 
+```
+
+#### Lake side view
+```{r}
+#Loggers
+hobo_deploymets_sp <- hobo_deployments %>% 
+  rbind(hobo_deployments %>% filter(deployment_depth == 5.4 & location == "West") %>%
+  mutate(location = "East")) %>%
+  inner_join(logger_positions, by = "location")
+
+# "2015-07-08 18:55:00" 
+# "2015-09-06 10:00:00"
+# 2015-07-25 19:20:00
+profile_x <- temperatures %>% 
+  filter(ts ==  "2015-09-06 10:00:00" & (round(depth,1) * 10) %% 2 == 0 ) %>%
+  inner_join(logger_positions, by = "location") %>%
+  group_nest(depth) %>%
+  mutate(h_interpolated_profile = map(.x = data, .f = function(x){
+    x_new <- seq(0, 3214, 10)
+    y_new <- interpolate_thermocline_value_linear(logger_distances = x$dist_from_zero,
+                                         logger_values = x$temperature,
+                                         detection_distances = x_new
+                                         )
+    tibble(dist_from_zero = x_new,
+           temperature = y_new)
+  })) %>% 
+  dplyr::select(-data) %>%
+  unnest(h_interpolated_profile)
+
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+axis_depth_profile_data <-  rbind(axis_depth_profile@data,
+                                   tibble(distance = c(-1, max(axis_depth_profile@data$distance)+1), lake_raster = 0))
+   
+gp_lake_side_view <- ggplot() +
+  geom_tile(data = profile_x %>% filter( dist_from_zero > 0 & dist_from_zero < 3210), 
+            aes(x = dist_from_zero, y = depth, fill = temperature)) +
+  scale_fill_gradientn(colours=jet.colors(7)) +
+  geom_ribbon(data =axis_depth_profile_data,
+                aes(x = distance, ymin = max(lake_raster, na.rm = T), ymax = lake_raster), col = "black") +
+  geom_path(data = 
+              hobo_deploymets_sp %>% group_by(location, dist_from_zero) %>% summarise(depth = range(deployment_depth), .groups = "keep"), 
+            aes(x = dist_from_zero, y = depth, group = location, col = " ")) +
+  geom_point(data = hobo_deploymets_sp, aes(x = dist_from_zero, y = deployment_depth, col = ' '), pch = 23, size = 3, fill = 'grey') +
+  scale_color_manual(values = c(" " = "#505050")) +
+  scale_y_reverse(expand = c(0, 0)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  xlab("Distance from western shore (m)") +
+  ylab("Depth (m)") +
+  labs(fill = expression('Temperature'~degree*C),
+       col = "Loggers")
+
+gp_lake_side_view
+
+```
+
+
+### Map of Europe
+```{r}
+worldMap <- rworldmap::getMap(resolution = "less islands")
+
+# Member States of the European Union
+europeanUnion <- c("Austria","Belgium","Bulgaria","Croatia","Cyprus",
+                   "Czech Rep.","Denmark","Estonia","Finland","France",
+                   "Germany","Greece","Hungary","Ireland","Italy","Latvia",
+                   "Lithuania","Luxembourg","Malta","Netherlands","Poland",
+                   "Portugal","Romania","Slovakia","Slovenia","Spain",
+                   "Sweden","United Kingdom", "Switzerland")
+# Select only the index of states member of the E.U.
+EU <- worldMap[which(worldMap$NAME %in% europeanUnion),]
+EU_sf <- st_transform(st_as_sf(EU), crs = CRS("+init=epsg:32633"))
+
+
+gp_map <- ggplot() +
+  geom_sf(data = EU_sf) +
+  geom_sf(data = EU_sf %>% filter(NAME == "Czech Rep."), fill = "red")
+  
+gp_map
+
+```
+
+## Thermocline detection
+
+### Temperature interpolation
+First, each temperature profile was interpolated vertically (in depth) using monotone Hermite spline.
+```{r}
+ts_example <- "2015-09-06 10:00:00"
+
+example_interval <- temperatures %>%
+  filter(ts == ts_example)
+
+hobo_example_interval <- hobo_data %>% filter(interval == ts_example)
+
+example_interval_loggers <- inner_join(hobo_example_interval,
+                                  hobo_deployments,
+                                  by = c("location", "depth" = "deployment_depth"))
+
+ggplot() +
+  geom_line(data = example_interval, aes(x = depth, temperature, col = location)) +
+  geom_point(data = hobo_example_interval, mapping = aes(x = depth, temperature, col = location))
+```
+
+## Thermocline interpolation over time
+`rLakeAnalyzer` package was used to detect thermocline base, center and top in each profile (5min iterval at each locations). The method is good but it does not perform perfectly especially in case of weird profiles (e.g. multiple thermoclines, very mixed profiles, ...). Therefore, temperature of detected thermocline was smoothed by running median over 3 days for each location. Depthx of occurences of these smoothed temperatures were detected and finally smoothed by Fast Fourier Transform.
+
+## Seasonal thermocline
+```{r}
+thermocline <- read_csv(here("data/products/thermocline_data.csv")) %>%
+  filter(therm_part == "crit")
+
+ggplot(data = thermocline %>% filter(therm_part == c("crit")), 
+       aes(x = thermocline_ts, col = interaction(location))) + 
+  geom_line(aes(y = depth)) +
+  scale_y_reverse() +
+  labs(col = "Location", x = "Time", y = "Depth (m)")
+```
+
+Seasonal thermocline depth was obtained for each location by fitting GAM model on computed thermocline depths.
+
+
+#### Smoothing by Fast Fourier Transform
+Smoothing was done on detrended data with influence of seasonal thremocline removed. The picture shows residual frequencies present in the time series.
+
+```{r}
+thermocline_fft <- read_csv(here("data/products/thermocline_fft.csv")) %>%
+  filter(therm_part == "crit") %>%
+  group_by(location, therm_part) %>% 
+  mutate(x = row_number()) %>% 
+  mutate(fft_spec_smoothed = ksmooth(x = x, y = abs(fft_spec), kernel = "box", bandwidth = 10)$y) %>%
+  mutate(filtered_out = x > 700) %>%
+  mutate(freq_hour = n() / (x * 12)) %>%
+  ungroup()
+
+n <- max(thermocline_fft$x)
+
+gp_fs_hours <- c(24 * c(5, 2, 1),  c(12, 9, 7:2), 1, 0.5)
+gp_breaks <- n / (gp_fs_hours * 12)
+
+ggplot(thermocline_fft, aes(x = log(x),
+                            y = fft_spec_smoothed,
+                            col = location,
+                            alpha = filtered_out))+
+  scale_x_continuous(breaks = log(gp_breaks),
+                     labels = gp_fs_hours,
+                     limits = range(log(gp_breaks))) +
+  scale_alpha_manual(values = c("FALSE" = 1, "TRUE" = 0.2)) +
+    geom_line(stat = "identity") +
+  labs(col = "Location", alpha = "Freq. used")+
+  xlab("Frequency (hours)") +
+  ylab("Periodogram")
+```
+
+
+##### Original data vs smoohed value
+Snippet of final result of temporal interpolation of thermocline.
+
+```{r}
+date_range <- c("2015-07-06", "2015-07-13")
+ggplot(data = thermocline %>% filter(therm_part == c("crit") &
+                                       thermocline_ts > date_range[1] &
+                                       thermocline_ts < date_range[2]), 
+       aes(x = thermocline_ts, col = interaction(location))) + 
+  geom_line(aes(y = depth, alpha = "original")) +
+  geom_line(aes(y = Re(depth_fft_smoothed), alpha = "fft_smoothed")) +
+  scale_alpha_manual(values = c("original"= 0.4, "smoothed" = 1)) +
+  scale_y_reverse() +
+  labs(col = "Location", x = "Time", y = "Depth (m)")
+```
+
+
+#### Various thermocline properties
+* Strength - difference of temperatures between top and base
+* Thickness - difference of depths between top and base
+* Mean gradient - mean temperature gradient between top and base (strength/thickness)
+* Deviation - difference between actual and smoothed thermocline depth
+* Seasonal depth - depth computed using GAM model
+### Correlation between variables
+```{r}
+thermocline_wide <- thermocline %>%
+  pivot_wider(id_cols = c("location", "thermocline_ts", "thickness", "strength", "mean_gradient"),
+              names_from = "therm_part",
+              values_from = c("depth", "temperature")) %>%
+  rename(ts = thermocline_ts)
+
+thermocline_wide %>%
+  dplyr::select(depth_crit, temperature_crit, thickness, strength, mean_gradient) %>%
+  corrr::correlate() %>%
+  corrr::rearrange() %>% 
+  corrr::rplot(print_cor = T)
+```
+
+It is clear that thickness, strength and thermocline temperature are highly correlated with thermocline depth. It might be better to use mean gradient as another good descriptor of the temperature profile. 
+
+There are other options to consider. E.g. compute index of overall stratification of the lake (literature suggests simply standard deviation of all temperatures, eventually there are some functions in `rLakeAnalyzer`).

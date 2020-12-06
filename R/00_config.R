@@ -24,6 +24,8 @@ library(optimx)#optmization for lmer
 library(mgcv)
 library(mgcViz)
 library(itsadug)
+library(rworldmap)
+library(rworldxtra)
 
 # Global variables -------------------------------------------------------------
 
