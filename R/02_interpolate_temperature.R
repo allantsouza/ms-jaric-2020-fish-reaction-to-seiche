@@ -3,6 +3,10 @@
 
 hobo_data <- as_tibble(load_hobo_data())
 
+# Some hotfixes
+# Weird hobo logs
+hobo_data <- hobo_data %>% 
+  filter( !(location == "West" & month(ts) == 9 & depth == 5.4) )
 
 temperatures_monotonic <- hobo_data %>% 
   group_nest(location, interval) %>%
