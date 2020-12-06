@@ -88,9 +88,11 @@ thermocline_temperatures_rolled[, temperature_roll := NULL]
 
 # Hotfix cure for some wierd profiles 
 thermocline_temperatures_rolled[depth > 15, depth := 15]
+thermocline_temperatures_rolled <- thermocline_temperatures_rolled[depth > 4]
+
 
 # Remove joins futher that 15 minutes
-thermocline_temperatures_rolled <- thermocline_temperatures_rolled[abs(as.numeric(ts) - as.numeric(thermocline_ts)) < 60*15 ]
+#thermocline_temperatures_rolled <- thermocline_temperatures_rolled[abs(as.numeric(ts) - as.numeric(thermocline_ts)) < 60*15 ]
 
 # Thermocline dynamics - PLOT 
 ggplot(data = thermocline_temperatures_rolled[],
@@ -116,63 +118,119 @@ thermocline_location <- thermocline_temperatures_rolled[, .(location,
 
 
 # Compute derived thermocline attributes ----------------------------------
-
-# Calculate seasonal thermocline
+# Approximate linearly missing records - not a big deal - few hours
 therm_lake <- thermocline_location %>%
   as_tibble() %>%
   mutate(ts_num = as.numeric(thermocline_ts) - min(as.numeric(thermocline_ts))) %>%
   group_nest(therm_part, location) %>%
-  mutate(lake_therm_depth_smoothed = map(.x = data, .f = function(x){
+  mutate(full_time_series = map(.x = data, .f = function(x){
+   tibble(
+     ts_num = seq(0, max(x$ts_num), 300),
+     depth = approx(x = x$ts_num, y = x$depth, xout = seq(0, max(x$ts_num), 300))$y,
+     temperature = approx(x = x$ts_num, y = x$temperature, xout = seq(0, max(x$ts_num), 300))$y,
+     thermocline_ts = min(x$thermocline_ts) + seq(0, max(x$ts_num), 300)
+   )
+   
+  })) %>%
+  select(-data) %>%
+  unnest(c("full_time_series"))
+
+# Calculate seasonal thermocline and deviation
+therm_lake_seasonal <-  therm_lake %>%
+  as_tibble() %>%
+  group_nest(therm_part, location) %>%
+  mutate(location_therm_depth_smoothed = map(.x = data, .f = function(x){
     gam_model <- mgcv::gam(depth ~ s(ts_num, k = 100), data = x)
     predict(gam_model, newdata = data.frame(ts_num = x$ts_num))
   })) %>%
-  unnest(c("data", "lake_therm_depth_smoothed")) %>%
-  as.data.table()
+  unnest(c("data", "location_therm_depth_smoothed"))
 
-print(therm_lake[, .N, by = .(location, therm_part)])
+# Smooth deviation by fft
+# Function to smooth variable using FFT
+# returns list of fft result (freq - frequency in hours, spec - frequency spectrum) and smoothed variable
+smooth_fft <- function(x, cutoff = 700) {
+  x_fft <- fft(x)
+  x_cutoffed <- x_fft
+  x_cutoffed[(cutoff):(length(x)-cutoff)] <- 0 + 0i 
+  tibble(fft_freq = 1/((1:length(x)) * 12/length(x)), 
+         fft_spec = Re(x_fft),
+         fft_smooth = Re(fft(x_cutoffed, inverse = TRUE)/length(x_fft)))
+}
 
-ggplot(therm_lake, aes(x = thermocline_ts, y = depth, col = therm_part))+
-  geom_point(shape = ".") +
-  geom_line(aes(y = lake_therm_depth_smoothed)) +
+
+therm_lake_deviation_t <- therm_lake_seasonal %>%
+  mutate(deviation = depth - location_therm_depth_smoothed) %>%
+  arrange(location, therm_part, thermocline_ts) %>%
+  group_nest(location, therm_part) %>%
+  mutate(deviation_smoothed = map(.x = data, .f = ~ smooth_fft(.x$deviation))) %>%
+  unnest(c("data", "deviation_smoothed")) %>%
+  rename(deviation_fft_smoothed = fft_smooth) %>%
+  mutate(depth_fft_smoothed = location_therm_depth_smoothed + deviation_fft_smoothed)
+
+therm_lake_deviation_t %>% 
+  select(location, therm_part, fft_freq, fft_spec) %>%
+  write_csv("data/products/thermocline_fft.csv")
+
+ggplot(therm_lake_deviation_t, 
+       aes(x = thermocline_ts, y = depth, col = therm_part)) +
+  geom_line(alpha = 0.5) +
+  geom_line(aes(y = location_therm_depth_smoothed), linetype = 2) +
+  geom_line(aes(y = depth_fft_smoothed)) +
   xlab("Date") +
   ylab("Depth") + 
   scale_y_reverse() +
   scale_color_manual(values = RColorBrewer::brewer.pal(n = 4, name = "Spectral"),
                      breaks = c("start", "crit" , "end"),
-                     labels = c("start", "crit", "end")) + facet_wrap(~ location, ncol = 1)
+                     labels = c("start", "crit", "end")) +
+  facet_wrap(~ location, ncol = 1)
 
 
-# deviation - difference of thermocline depth from seasonal thermocline depth
-th_deviation <- merge(thermocline_location, unique(therm_lake[, .(thermocline_ts, location, therm_part, lake_therm_depth_smoothed)]),
-               by = c("thermocline_ts","location", "therm_part"))
-th_deviation[, deviation := depth - lake_therm_depth_smoothed]
+# Prepare temperatures for merging
+
+therm_lake_deviation_tt <- therm_lake_deviation_t %>% mutate(depth_fft_smoothed_rounded = round(depth_fft_smoothed, 1))
+
+therm_lake_deviation <- temperatures_monotonic_strictly %>% as_tibble() %>%
+  mutate(depth_fft_smoothed_rounded = round(depth, 1)) %>%
+  select(ts, location, depth, depth_fft_smoothed_rounded, temperature_strictly_decreasing) %>%
+  rename(thermocline_ts = ts,
+         temperature_fft_smoothed = temperature_strictly_decreasing) %>%
+  right_join(therm_lake_deviation_tt, by = c("location", "thermocline_ts", "depth_fft_smoothed_rounded")) %>%
+  select(-depth_fft_smoothed_rounded)
+
+
+therm_lake_deviation %>% filter(thermocline_ts == "2015-06-09 00:15:00" & depth_fft_smoothed_rounded == 6.8) 
+b$depth_fft_smoothed_rounded 
+
+ggplot(therm_lake_deviation, 
+       aes(x = thermocline_ts, y = temperature, col = therm_part)) +
+  geom_line(alpha = 0.5) +
+  geom_line(aes(y = temperature_fft_smoothed)) +
+  xlab("Date") +
+  ylab("Temperature") +
+  facet_wrap(~ location, ncol = 1) +
+  scale_color_manual(values = RColorBrewer::brewer.pal(n = 4, name = "Spectral"),
+                     breaks = c("start", "crit" , "end"),
+                     labels = c("start", "crit", "end")) 
 
 
 # thickness - difference of depth between start and end
-thermocline_location_wide_depth <- dcast(data = thermocline_location,
-                                        formula = location +  thermocline_ts ~ therm_part,
-                                        value.var = "depth")
-
-thermocline_location_wide_depth[, thickness := end - start]
-
-thermocline_data_thickness <- merge(th_deviation,
-                                    thermocline_location_wide_depth[, .(thermocline_ts,
-                                                                        location,
-                                                                        thickness)],
-                          by = c("thermocline_ts", "location"))
-
 # stregth - difference of degrees between start and end
-thermocline_location_wide_temperature <- dcast(data = thermocline_location, location + thermocline_ts ~ therm_part, value.var = "temperature")
-thermocline_location_wide_temperature[, strength := start - end]
-
-thermocline_data <- merge(thermocline_data_thickness, thermocline_location_wide_temperature[, .(thermocline_ts, location, strength)],
-                          by = c("thermocline_ts", "location"))
-
-
 # mean_gradient - temperature decrease in degrees/m
-thermocline_data[, mean_gradient := strength/thickness]
+
+thermocline_lake_thickness_strength <- therm_lake_deviation %>% 
+  pivot_wider(id_cols = c("thermocline_ts", "location"),
+              names_from = "therm_part",
+              values_from = c("temperature", "depth", "depth_fft_smoothed", "temperature_fft_smoothed")) %>%
+  mutate(thickness = depth_end - depth_start,
+         thickness_fft_smoothed = depth_fft_smoothed_end - depth_fft_smoothed_start,
+         strength = temperature_start - temperature_end,
+         strength_fft_smoothed = temperature_fft_smoothed_start - temperature_fft_smoothed_end) %>%
+  select(thermocline_ts, location, thickness, thickness_fft_smoothed, strength) %>%
+  inner_join(therm_lake_deviation, by = c("location", "thermocline_ts")) %>%
+  mutate(mean_gradient = strength/thickness, 
+         mean_gradient_fft_smoothed = strength_fft_smoothed / thickness_fft_smoothed)
 
 
 # Export
-write_csv(x = thermocline_data %>% filter(thermocline_ts %between% DATE_RANGE),
+write_csv(x = thermocline_lake_thickness_strength %>% filter(thermocline_ts %between% DATE_RANGE & !is.na(mean_gradient)),
           file = here("data", "products", "thermocline_data.csv"))

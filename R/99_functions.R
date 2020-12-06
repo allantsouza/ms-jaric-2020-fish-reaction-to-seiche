@@ -359,11 +359,11 @@ join_detections_thermocline <- function(detections, thermocline, max_timediff) {
   x <- merge(as.data.frame(detections), data.frame(therm_part = unique(thermocline$therm_part)), all = T)
   x_dt <- as.data.table(x)
   # x_dt$thermocline_ts <- x_dt$dets_ts
-  y_dt <- as.data.table(thermocline_wide)
-  y_dt$dets_ts <- y_dt$thermocline_ts
+  y_dt <- as.data.table(thermocline)
+  y_dt$dets_ts_5min <- y_dt$thermocline_ts
   # y_dt$interval_tmp <- y_dt$thermocline_ts
-  setkey(x_dt, therm_part, dets_ts)
-  setkey(y_dt, therm_part, dets_ts)
+  setkey(x_dt, therm_part, dets_ts_5min)
+  setkey(y_dt, therm_part, dets_ts_5min)
   detpos_therm <- as_tibble(y_dt[x_dt, roll = "nearest"]) %>%
-    filter(abs(as.numeric(difftime(dets_ts, thermocline_ts, units = "secs"))) < max_timediff) # remove detections for which the thermocline log is further than 30 min
+    filter(abs(as.numeric(difftime(dets_ts_5min, thermocline_ts, units = "secs"))) < max_timediff) # remove detections for which the thermocline log is further than 30 min
 }

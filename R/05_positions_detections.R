@@ -31,20 +31,27 @@ distance_east <- logger_pos[logger_pos$location == "East",]$dist_from_zero
 
 
 thermocline <- here("data/products/thermocline_data.csv") %>%
-  read_csv(col_types = c("thermocline_ts" = "T"))
+  read_csv(col_types = c("thermocline_ts" = "T")) %>% 
+  dplyr::select(thermocline_ts, location, therm_part,
+         thickness_fft_smoothed,
+         mean_gradient,
+         deviation_fft_smoothed,
+         location_therm_depth_smoothed, 
+         depth_fft_smoothed, 
+         temperature,
+         strength) %>%
+  rename(thickness = thickness_fft_smoothed, 
+         deviation = deviation_fft_smoothed, 
+         depth = depth_fft_smoothed)
 
 thermocline_wide <- thermocline %>% 
   pivot_wider(id_cols = c("thermocline_ts", 
-                          "therm_part",
-                          "lake_therm_depth_smoothed",
-                          "lake_therm_temperature_smoothed"), names_from = "location",
-              values_from = c("deviation", "thickness", "temperature", "depth", "strength")) %>%
+                          "therm_part"),
+              names_from = "location",
+              values_from = c("location_therm_depth_smoothed", "deviation", "thickness", "temperature", "depth", "strength", "mean_gradient")) %>%
   group_by(thermocline_ts) %>%
   filter(!is.na(depth_East) & !is.na(depth_West)) %>%
   ungroup()
-  
-
-
 
 
 # For each fish -----------------------------------------------------------
@@ -95,18 +102,31 @@ for(i in 1:length(tag_sns)){
            det_therm_gradient = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
                                                                   logger_values = c(depth_East, depth_West),
                                                                   detection_distances = dist_from_zero),
-           ) %>%
-    mutate(det_therm_deviation = lake_therm_depth_smoothed - det_therm_depth)
+           det_therm_deviation = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                     logger_values = c(deviation_East, deviation_West),
+                                                                     detection_distances = dist_from_zero),
+           det_therm_strength = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                                    logger_values = c(strength_East, strength_West),
+                                                                                    detection_distances = dist_from_zero),
+           det_location_therm_depth_smoothed = interpolate_thermocline_value_linear(logger_distances = c(distance_east, distance_west),
+                                                                     logger_values = c(location_therm_depth_smoothed_East, location_therm_depth_smoothed_West),
+                                                                     detection_distances = dist_from_zero),
+           )
   
   # Widen so all therm_parts in separate columns
   detpos_therm_interpolated_wide <- detpos_therm_interpolated %>%
     pivot_wider(id_cols = c("tag_sn", "dets_ts", "det_depth", "thermocline_ts", "dist_from_zero"), 
               names_from = "therm_part", 
-              values_from = c("lake_therm_depth_smoothed", "det_therm_temperature", "det_therm_depth", "det_therm_deviation", "depth_East", "depth_West")) %>%
-    mutate(det_therm_strength = det_therm_temperature_start - det_therm_temperature_end) %>%
-    mutate(lake_disbalance = depth_East_center - depth_West_center) %>%
+              values_from = c("det_location_therm_depth_smoothed", 
+                              "det_therm_temperature", 
+                              "det_therm_depth",
+                              "det_therm_deviation", "det_therm_strength", 
+                              "depth_East", "depth_West",
+                              "location_therm_depth_smoothed_West", "location_therm_depth_smoothed_East")) %>%
+    #mutate(det_therm_strength = det_therm_temperature_start - det_therm_temperature_end) %>%
+    mutate(lake_disbalance = depth_East_crit - depth_West_crit) %>%
     mutate(is_valid_seiche = abs(lake_disbalance) > 0.69999) %>%
-    mutate(lake_therm_thickness_smoothed = lake_therm_depth_smoothed_end - lake_therm_depth_smoothed_start) %>%
+    mutate(lake_therm_thickness_smoothed = (location_therm_depth_smoothed_East_end + location_therm_depth_smoothed_West_end) /2 - (location_therm_depth_smoothed_East_start + location_therm_depth_smoothed_West_start) /2) %>%
     mutate(diel_period = get_diel_period(dets_ts))
 
   # Export

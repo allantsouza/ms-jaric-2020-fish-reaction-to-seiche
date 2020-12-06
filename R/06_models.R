@@ -8,10 +8,21 @@ detections <- fish_raw %>%
   # read in all the files, appending the path before the filename
   map(~ read_csv(.)) %>% 
   reduce(rbind) %>%
-  inner_join(fish_raw[,c("tag_sn","fishid", "species")])
+  inner_join(fish_raw[,c("tag_sn","fishid", "species")]) %>%
+  rename(
+         det_therm_strength = det_therm_strength_crit,
+         det_therm_deviation_center = det_therm_deviation_crit,
+         lake_therm_depth_smoothed_center = det_location_therm_depth_smoothed_crit
+         )
 
 #Transfom variables
-detections<-detections %>% mutate_at(c(6,18,30,33), funs(c(scale(.))))  #scale predictors only
+detections <- detections %>% mutate_at(c("lake_therm_thickness_smoothed", 
+                                         "det_therm_strength",
+                                         "lake_therm_depth_smoothed_center",
+                                         "det_therm_deviation_center",
+                                         "dets_ts"
+                                         ), funs(c(scale(.)))) #scale predictors only
+  
 
 #GAMMs with autocorrelation structure ####
 ##Pike - day ####
