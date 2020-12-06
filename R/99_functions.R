@@ -205,6 +205,14 @@ load_temperature_data <- function() {
   read_csv(here("data", "products", "temperature_data.csv"), col_types = c("cTddd"))
 }
 
+load_logger_positions <- function() {
+  here("data/raw/db/logger_positions.shp") %>% 
+    st_read() %>%
+    rename(location = locatin,
+           dist_from_zero = dst_fr_,
+           location_order = lctn_rd)
+}
+
 load_wind_data <- function() {
   read_csv(here("data", "raw", "db", "wind_data.csv"), col_types = c("cccccddTd"))
 }

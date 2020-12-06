@@ -23,10 +23,11 @@ point_zero <- here("data/raw/sp/point_zero.shp") %>%
   st_read()
 
 
-logger_pos <- here("data/raw/db/logger_positions.shp") %>% st_read()
+logger_pos <- load_logger_positions()
+
 logger_pos$dist_from_zero <- compute_distance_from_point_zero(positions = logger_pos, lake_axis = lake_axis, point_zero = point_zero)
-distance_west <- logger_pos[logger_pos$locatin == "West",]$dist_from_zero
-distance_east <- logger_pos[logger_pos$locatin == "East",]$dist_from_zero
+distance_west <- logger_pos[logger_pos$location == "West",]$dist_from_zero
+distance_east <- logger_pos[logger_pos$location == "East",]$dist_from_zero
 
 
 thermocline <- here("data/products/thermocline_data.csv") %>%
