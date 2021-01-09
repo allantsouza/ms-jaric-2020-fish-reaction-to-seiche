@@ -223,7 +223,7 @@ thermocline_fft <- read_csv(here("data/products/thermocline_fft.csv")) %>%
   group_by(location, therm_part) %>% 
   mutate(x = row_number()) %>% 
   mutate(fft_spec_smoothed = ksmooth(x = x, y = abs(fft_spec), kernel = "box", bandwidth = 10)$y) %>%
-  mutate(filtered_out = x > 700) %>%
+  mutate(filtered_out = x < 700) %>%
   mutate(freq_hour = n() / (x * 12)) %>%
   ungroup()
 
@@ -239,11 +239,11 @@ ggplot(thermocline_fft, aes(x = log(x),
   scale_x_continuous(breaks = log(gp_breaks),
                      labels = gp_fs_hours,
                      limits = range(log(gp_breaks))) +
-  scale_alpha_manual(values = c("FALSE" = 1, "TRUE" = 0.2)) +
+  scale_alpha_manual(values = c("TRUE" = 1, "FALSE" = 0.2)) +
     geom_line(stat = "identity") +
   labs(col = "Location", alpha = "Freq. used")+
   xlab("Frequency (hours)") +
-  ylab("Periodogram")
+  ylab("Spectral density")
 ```
 
 
