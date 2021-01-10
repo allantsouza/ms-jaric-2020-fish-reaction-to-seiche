@@ -1,0 +1,59 @@
+---
+title: "report_02"
+author: "Vilem Ded"
+date: "2021-01-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F)
+
+```
+
+```{r}
+library(here)
+source(here("R", "00_config.R"))
+source(here("R", "99_functions.R"))
+```
+
+## Content
+On 2021-01-08, the new variables for models were discussed. More detailed information is needed to decide. This report shows correlations between variables and discusses new set which should be used in the analyses.
+
+
+## Correlation matrix
+The original matrix did not contain all variables. Here is the complete one:
+```{r}
+thermocline <- read_csv(here("data/products/thermocline_data.csv")) %>%
+  filter(therm_part == "crit")
+
+thermocline_wide <- thermocline %>%
+  pivot_wider(id_cols = c("location","location_therm_depth_smoothed", "thermocline_ts", "thickness", "strength", "mean_gradient"),
+              names_from = "therm_part",
+              values_from = c("depth", "temperature", "deviation")) %>%
+  rename_with(x = .data, ~ gsub("_crit|_start|_end", "", .x), ends_with(c("crit", "start", "end"))) %>% rename(ts = thermocline_ts, 
+         seasonal_depth = location_therm_depth_smoothed,
+         amplitude = deviation)
+
+thermocline_wide %>%
+  dplyr::select(seasonal_depth, amplitude, thickness, strength, mean_gradient) %>%
+  corrr::correlate(use = "complete.obs") %>%
+  corrr::rearrange() %>% 
+  corrr::rplot(print_cor = T)
+```
+
+- mean gradient - temperature gradinet in degree per meter between thermocline top and base
+- seasonal depth - longterm depth of thermocline (without effect of seiche)
+- amplitude - deviation of actual depth of thermocline from seasonal depth
+- strength - difference of temperatures between thermocline top and base
+- thickness - difference of depths between thermocline top and base
+
+Now it is more or less clear, but lets check using `caret::findCorrelation()`:
+```{r,echo=TRUE}
+corr_matrix <- thermocline_wide %>%
+  dplyr::select(seasonal_depth, amplitude, thickness, strength, mean_gradient) %>%
+  cor()
+
+caret::findCorrelation(corr_matrix, cutoff = 0.4, names = T, verbose = T)
+```
+
+The function detected **thickness** and **strength** as variables to remove :)
