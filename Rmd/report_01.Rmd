@@ -204,7 +204,7 @@ ggplot() +
 thermocline <- read_csv(here("data/products/thermocline_data.csv")) %>%
   filter(therm_part == "crit")
 
-ggplot(data = thermocline %>% filter(therm_part == c("crit")), 
+ggplot(data = thermocline, 
        aes(x = thermocline_ts, col = interaction(location))) + 
   geom_line(aes(y = depth)) +
   scale_y_reverse() +
@@ -252,7 +252,7 @@ Snippet of final result of temporal interpolation of thermocline.
 
 ```{r}
 date_range <- c("2015-07-06", "2015-07-13")
-ggplot(data = thermocline %>% filter(therm_part == c("crit") &
+ggplot(data = thermocline %>% filter(
                                        thermocline_ts > date_range[1] &
                                        thermocline_ts < date_range[2]), 
        aes(x = thermocline_ts, col = interaction(location))) + 
@@ -270,16 +270,17 @@ ggplot(data = thermocline %>% filter(therm_part == c("crit") &
 * Mean gradient - mean temperature gradient between top and base (strength/thickness)
 * Deviation - difference between actual and smoothed thermocline depth
 * Seasonal depth - depth computed using GAM model
+
 ### Correlation between variables
 ```{r}
 thermocline_wide <- thermocline %>%
-  pivot_wider(id_cols = c("location", "thermocline_ts", "thickness", "strength", "mean_gradient"),
+  pivot_wider(id_cols = c("location","location_therm_depth_smoothed", "thermocline_ts", "thickness", "strength", "mean_gradient"),
               names_from = "therm_part",
-              values_from = c("depth", "temperature")) %>%
+              values_from = c("depth", "temperature", "deviation")) %>%
   rename(ts = thermocline_ts)
 
 thermocline_wide %>%
-  dplyr::select(depth_crit, temperature_crit, thickness, strength, mean_gradient) %>%
+  dplyr::select(depth_crit, location_therm_depth_smoothed, deviation_crit, temperature_crit, thickness, strength, mean_gradient) %>%
   corrr::correlate() %>%
   corrr::rearrange() %>% 
   corrr::rplot(print_cor = T)
