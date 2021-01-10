@@ -3,6 +3,8 @@
 .RData
 .Ruserdata
 .Renviron
+*.html
+
 
 !**/README.md
 
