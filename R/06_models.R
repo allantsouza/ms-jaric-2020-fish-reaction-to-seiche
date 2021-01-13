@@ -4,25 +4,46 @@ fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccdc") %>%
 
 detections <- fish_raw %>%
   filter(file.exists(data_path)) %>%
+  slice(1) %>%
   pull(data_path) %>%
   # read in all the files, appending the path before the filename
   map(~ read_csv(.)) %>% 
   reduce(rbind) %>%
   inner_join(fish_raw[,c("tag_sn","fishid", "species")]) %>%
-  rename(
-         det_therm_strength = det_therm_strength_crit,
-         det_therm_deviation_center = det_therm_deviation_crit,
-         lake_therm_depth_smoothed_center = det_location_therm_depth_smoothed_crit
+  dplyr::select(
+         fishid,
+         species,
+         is_valid_seiche,
+         diel_period,
+         det_depth,
+         dets_ts,
+         amplitude = det_therm_deviation_crit,
+         seasonal_depth = det_location_therm_depth_smoothed_crit,
+         mean_gradient = det_therm_gradient_crit
          )
 
 #Transfom variables
-detections <- detections %>% mutate_at(c("lake_therm_thickness_smoothed", 
-                                         "det_therm_strength",
-                                         "lake_therm_depth_smoothed_center",
-                                         "det_therm_deviation_center",
-                                         "dets_ts"
-                                         ), funs(c(scale(.)))) #scale predictors only
-  
+detections <- detections %>% 
+  mutate_at(c("mean_gradient",
+              "seasonal_depth",
+              "amplitude",
+              "dets_ts"
+  ),
+  .funs = ~ scale(.)) #scale predictors only
+
+# All models use only one formula
+global_model_formula <- formula(
+  det_depth ~
+    s(seasonal_depth, k = 10, bs = 'cr') +
+    s(amplitude, k = 10, bs = 'cr')+
+    s(mean_gradient, fishid,  bs="fs", m=1) +
+    s(seasonal_depth, fishid,  bs="fs", m=1) +
+    s(amplitude, fishid,  bs="fs", m=1) +
+    s(mean_gradient, fishid,  bs="fs", m=1) +
+    s(dets_ts) +
+    s(fishid, dets_ts, bs="fs", m=1)
+)
+
 
 #GAMMs with autocorrelation structure ####
 ##Pike - day ####

@@ -132,7 +132,7 @@ therm_lake <- thermocline_location %>%
    )
    
   })) %>%
-  select(-data) %>%
+  dplyr::select(-data) %>%
   unnest(c("full_time_series"))
 
 # Calculate seasonal thermocline and deviation
@@ -168,7 +168,7 @@ therm_lake_deviation_t <- therm_lake_seasonal %>%
   mutate(depth_fft_smoothed = location_therm_depth_smoothed + deviation_fft_smoothed)
 
 therm_lake_deviation_t %>% 
-  select(location, therm_part, fft_freq, fft_spec) %>%
+  dplyr::select(location, therm_part, fft_freq, fft_spec) %>%
   write_csv("data/products/thermocline_fft.csv")
 
 ggplot(therm_lake_deviation_t, 
@@ -187,19 +187,18 @@ ggplot(therm_lake_deviation_t,
 
 # Prepare temperatures for merging
 
-therm_lake_deviation_tt <- therm_lake_deviation_t %>% mutate(depth_fft_smoothed_rounded = round(depth_fft_smoothed, 1))
+therm_lake_deviation_tt <- therm_lake_deviation_t %>%
+  mutate(depth_fft_smoothed_rounded = round(depth_fft_smoothed, 1))
 
-therm_lake_deviation <- temperatures_monotonic_strictly %>% as_tibble() %>%
+# Get temperature of in smoothed depths
+therm_lake_deviation <- temperatures_monotonic_strictly %>%
+  as_tibble() %>%
   mutate(depth_fft_smoothed_rounded = round(depth, 1)) %>%
-  select(ts, location, depth, depth_fft_smoothed_rounded, temperature_strictly_decreasing) %>%
+  dplyr::select(ts, location, depth_fft_smoothed_rounded, temperature_strictly_decreasing) %>%
   rename(thermocline_ts = ts,
          temperature_fft_smoothed = temperature_strictly_decreasing) %>%
   right_join(therm_lake_deviation_tt, by = c("location", "thermocline_ts", "depth_fft_smoothed_rounded")) %>%
-  select(-depth_fft_smoothed_rounded)
-
-
-therm_lake_deviation %>% filter(thermocline_ts == "2015-06-09 00:15:00" & depth_fft_smoothed_rounded == 6.8) 
-b$depth_fft_smoothed_rounded 
+  dplyr::select(-depth_fft_smoothed_rounded)
 
 ggplot(therm_lake_deviation, 
        aes(x = thermocline_ts, y = temperature, col = therm_part)) +
@@ -225,7 +224,7 @@ thermocline_lake_thickness_strength <- therm_lake_deviation %>%
          thickness_fft_smoothed = depth_fft_smoothed_end - depth_fft_smoothed_start,
          strength = temperature_start - temperature_end,
          strength_fft_smoothed = temperature_fft_smoothed_start - temperature_fft_smoothed_end) %>%
-  select(thermocline_ts, location, thickness, thickness_fft_smoothed, strength) %>%
+  dplyr::select(thermocline_ts, location, thickness, thickness_fft_smoothed, strength, strength_fft_smoothed) %>%
   inner_join(therm_lake_deviation, by = c("location", "thermocline_ts")) %>%
   mutate(mean_gradient = strength/thickness, 
          mean_gradient_fft_smoothed = strength_fft_smoothed / thickness_fft_smoothed)
