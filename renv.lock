@@ -576,13 +576,6 @@
       "Repository": "CRAN",
       "Hash": "2c0406b8e0a4c3516ab37be62da74e3c"
     },
-    "hexbin": {
-      "Package": "hexbin",
-      "Version": "1.28.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "3d59212f2814d65dff517e6899813c58"
-    },
     "hier.part": {
       "Package": "hier.part",
       "Version": "1.0-6",
@@ -946,13 +939,6 @@
       "Repository": "CRAN",
       "Hash": "c3aed2d3564e92234d375bdd0e12c1eb"
     },
-    "plotly": {
-      "Package": "plotly",
-      "Version": "4.9.2.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "b08edf378e0e38959a6983e3d5902795"
-    },
     "plyr": {
       "Package": "plyr",
       "Version": "1.8.6",
@@ -1149,6 +1135,13 @@
       "Repository": "CRAN",
       "Hash": "2d44e9bbfe7aff5acb7583482be4096d"
     },
+    "rpart": {
+      "Package": "rpart",
+      "Version": "4.1-15",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "9787c1fcb680e655d062e7611cadf78e"
+    },
     "rpostgis": {
       "Package": "rpostgis",
       "Version": "1.4.3",
@@ -1295,6 +1288,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "0759e6b6c0957edb1311028a49a35e76"
+    },
+    "survival": {
+      "Package": "survival",
+      "Version": "3.2-7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "39c4ac6d22dad33db0ee37b40810ea12"
     },
     "sys": {
       "Package": "sys",
