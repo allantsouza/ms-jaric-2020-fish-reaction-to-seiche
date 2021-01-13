@@ -328,7 +328,10 @@ compute_distance_from_point_zero <- function(positions, lake_axis, point_zero) {
 #' @details If the length of logger_values and detection_distances is equal, the values are assumed to be matching.
 #' @return vector of values at place of detections
 interpolate_thermocline_value_linear <- function(logger_distances, logger_values, detection_distances) {
-  approx(x = logger_distances, y = logger_values, xout = detection_distances, rule = 2)$y
+  tryCatch(expr = {
+    approx(x = logger_distances, y = logger_values, xout = detection_distances, rule = 2)$y
+    },
+    error = function(e) NA)
 }
 
 
