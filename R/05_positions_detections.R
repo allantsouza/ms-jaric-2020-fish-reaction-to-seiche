@@ -135,5 +135,5 @@ for(i in 1:length(tag_sns)){
     mutate(diel_period = get_diel_period(dets_ts))
 
   # Export
-  write_csv(x = detpos_therm_interpolated_wide, path = here("data/products/fish/", paste0(tag_sns[i], ".csv")))
+  write_csv(x = detpos_therm_interpolated_wide, file = here("data/products/fish/", paste0(tag_sns[i], ".csv")))
 }

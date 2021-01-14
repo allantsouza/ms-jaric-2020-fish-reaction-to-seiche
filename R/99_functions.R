@@ -209,7 +209,7 @@ load_logger_positions <- function() {
   here("data/raw/db/logger_positions.shp") %>% 
     st_read(quiet = T) %>%
     rename(location = locatin,
-           dist_from_zero = dst_fr_,
+           northing = northng,
            location_order = lctn_rd)
 }
 

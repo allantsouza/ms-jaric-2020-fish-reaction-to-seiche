@@ -1,7 +1,6 @@
 # calculation of mean thermocline temperature for every single day (mean from both lines, calculated as diffrence between up_depth and down_depth)
 thermocline <- here("data/products/thermocline_data.csv") %>%
-  read_csv() %>%
-  filter(step_order == 1 & slope == PAR_THERMOCLINE_SLOPE & therm_part == "center")
+  read_csv()
 
 wind_data <- read_csv(here("data", "raw", "db", "wind_data.csv"))
 
@@ -50,8 +49,9 @@ wind <- wind %>%
 ###SHINY PLOTTING ####
 
   time_range <- range(thermocline$thermocline_ts, na.rm = T)
+
   gp1 <- thermocline %>%
-    filter(therm_part == "center" & step_order == 1) %>%
+    filter(therm_part == "crit") %>%
     ggplot(mapping = aes(x = thermocline_ts, y = deviation, col = location))+
     geom_line() +
     guides(col = F) +
