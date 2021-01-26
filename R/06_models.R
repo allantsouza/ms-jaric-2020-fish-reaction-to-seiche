@@ -4,7 +4,7 @@ fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccdc") %>%
 
 detections <- fish_raw %>%
   filter(file.exists(data_path)) %>%
-  slice(1) %>%
+#  slice(1) %>%   # slicing takes only one factor per level ID
   pull(data_path) %>%
   # read in all the files, appending the path before the filename
   map(~ read_csv(.)) %>% 
@@ -23,11 +23,12 @@ detections <- fish_raw %>%
          )
 
 #Transfom variables
+detections$dets_ts<-as.integer(detections$dets_ts)  # need to convert time to integer
 detections <- detections %>% 
   mutate_at(c("mean_gradient",
               "seasonal_depth",
               "amplitude",
-              "dets_ts"
+ #             "dets_ts" # time doen't need to be scaled
   ),
   .funs = ~ scale(.)) #scale predictors only
 
@@ -36,37 +37,41 @@ global_model_formula <- formula(
   det_depth ~
     s(seasonal_depth, k = 10, bs = 'cr') +
     s(amplitude, k = 10, bs = 'cr')+
-    s(mean_gradient, fishid,  bs="fs", m=1) +
+    s(mean_gradient, k = 10, bs = 'cr') +   # add missing line and remove repeated random smooth for mean_gradient
     s(seasonal_depth, fishid,  bs="fs", m=1) +
     s(amplitude, fishid,  bs="fs", m=1) +
     s(mean_gradient, fishid,  bs="fs", m=1) +
-    s(dets_ts) +
+    s(dets_ts, k = 10, bs = 'cr') +         # add smoothing paramter to time
     s(fishid, dets_ts, bs="fs", m=1)
 )
 
 
 #GAMMs with autocorrelation structure ####
 ##Pike - day ####
-#Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
-tic('Model run')
-mdl_pike_day_simple <- bam(formula = det_depth ~
-                             s(lake_therm_thickness_smoothed, k = 10, bs = 'cr') +
-                             s(det_therm_strength, k = 10, bs = 'cr') +
-                             s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
-                             s(det_therm_deviation_center, k = 10, bs = 'cr')+
-                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
-                             s(det_therm_strength, fishid,  bs="fs", m=1) +
-                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) + 
-                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
-                             s(dets_ts) +
-                             s(fishid, dets_ts, bs="fs", m=1),
-                           data = detections %>%
+
+#Set pike-day data (from here on to simply model formula; otherwise it's a mess)
+data_pike_day = detections %>%
                              filter(species == "pike" &
                                       diel_period == 'day' &
                                       is_valid_seiche == TRUE) %>%
                              mutate(startindex = ifelse(
                                test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
-                             mutate(fishid = as_factor(fishid)),
+                             mutate(fishid = as_factor(fishid))
+
+#Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
+tic('Model run')
+mdl_pike_day_simple <- bam(formula = det_depth ~
+                             s(lake_therm_thickness_smoothed, k = 100, bs = 'cr') +
+                             s(det_therm_strength, k = 100, bs = 'cr') +
+                             s(lake_therm_depth_smoothed_center, k = 100, bs = 'cr') +
+                             s(det_therm_deviation_center, k = 100, bs = 'cr')+
+                             s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
+                             s(det_therm_strength, fishid,  bs="fs", m=1) +
+                             s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) + 
+                             s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
+                             s(dets_ts, k = 100, bs = 'cr') +
+                             s(fishid, dets_ts, bs="fs", m=1),
+                           data = data_pike_day,  # replace by dataset name
                            family = 'gaussian',
                            nthreads = 10, cluster = 10, gc.level = 0)
 toc()
@@ -77,23 +82,17 @@ rho_start_value <- start_value_rho(mdl_pike_day_simple, plot = TRUE)
 #Model with autocorrelation
 tic('Model run takes')
 mld_gamm_pike_day <- bam(formula = det_depth ~
-                           s(lake_therm_thickness_smoothed, k = 10, bs = 'cr') +
-                           s(det_therm_strength, k = 10, bs = 'cr') +
-                           s(lake_therm_depth_smoothed_center, k = 10, bs = 'cr') +
-                           s(det_therm_deviation_center, k = 10, bs = 'cr')+
+                           s(lake_therm_thickness_smoothed, k = 100, bs = 'cr') +
+                           s(det_therm_strength, k = 100, bs = 'cr') +
+                           s(lake_therm_depth_smoothed_center, k = 100, bs = 'cr') +
+                           s(det_therm_deviation_center, k = 100, bs = 'cr')+
                            s(lake_therm_thickness_smoothed, fishid,  bs="fs", m=1) +
                            s(det_therm_strength, fishid,  bs="fs", m=1) +
                            s(lake_therm_depth_smoothed_center, fishid,  bs="fs", m=1) +
                            s(det_therm_deviation_center, fishid,  bs="fs", m=1) +
-                           s(dets_ts) +
+                           s(dets_ts, k = 100, bs = 'cr') +
                            s(fishid, dets_ts, bs="fs", m=1),
-                         data = detections %>%
-                           filter(species == "pike" &
-                                    diel_period == 'day' &
-                                    is_valid_seiche == TRUE) %>%
-                           mutate(startindex = ifelse(
-                             test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
-                           mutate(fishid = as_factor(fishid)),
+                         data = data_pike_day,
                          family = 'gaussian',
                          nthreads = 10, cluster = 10, gc.level = 0,
                          AR.start = startindex, rho = rho_start_value) #autocorrelation
