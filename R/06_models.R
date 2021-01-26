@@ -28,7 +28,7 @@ detections <- detections %>%
   mutate_at(c("mean_gradient",
               "seasonal_depth",
               "amplitude",
- #             "dets_ts" # time doen't need to be scaled
+ #             "dets_ts" # time doesn't need to be scaled
   ),
   .funs = ~ scale(.)) #scale predictors only
 
@@ -41,7 +41,7 @@ global_model_formula <- formula(
     s(seasonal_depth, fishid,  bs="fs", m=1) +
     s(amplitude, fishid,  bs="fs", m=1) +
     s(mean_gradient, fishid,  bs="fs", m=1) +
-    s(dets_ts, k = 10, bs = 'cr') +         # add smoothing paramter to time
+    s(dets_ts, k = 10, bs = 'cr') +         # add smoothing parameter to time
     s(fishid, dets_ts, bs="fs", m=1)
 )
 
@@ -49,7 +49,7 @@ global_model_formula <- formula(
 #GAMMs with autocorrelation structure ####
 ##Pike - day ####
 
-#Set pike-day data (from here on to simply model formula; otherwise it's a mess)
+#Set pike-day data (from here on to simplify model formula; otherwise it's a mess)
 data_pike_day = detections %>%
                              filter(species == "pike" &
                                       diel_period == 'day' &
