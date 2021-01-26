@@ -32,7 +32,7 @@ detections <- detections %>%
   ),
   .funs = ~ scale(.)) #scale predictors only
 
-# All models use this formula as a start point: Models are re-fitted with increasing number of knots to check changes in effective ddegrees of freedom (edf).
+# All models use this formula as a starting point: Models are re-fitted with increasing number of knots to check changes in effective degrees of freedom (edf).
 global_model_formula <- formula(
   det_depth ~
     s(seasonal_depth, k = 10, bs = 'cr') +
