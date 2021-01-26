@@ -46,8 +46,7 @@ global_model_formula <- formula(
 )
 
 
-#GAMMs with autocorrelation structure ####
-##Pike - day ####
+################################################################################ Pike - day #####################################################################################
 
 #Set pike-day data (from here on to simplify model formula; otherwise it's a mess)
 data_pike_day = detections %>%
@@ -58,8 +57,11 @@ data_pike_day = detections %>%
                                test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
                              mutate(fishid = as_factor(fishid))
 
+# MODEL SELECTION BY ADJUSTMENT OF BASIS DIMENSIONS   
 # The same model is fitted with different number of knots (k) (10, 100, 200, 500 and 1000[1440 per day]) to see changes in edf.
-# When basis dimensions are estabilised between models we select the one where changes start to be insignificant. In this case k=100 is our choice.
+# When basis dimensions are estabilised between models we select the one where changes start to be insignificant. 
+# In this case k=100 is our choice (only the model formula of the selected k model is shown).
+
 #Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
 tic('Model run')
 mdl_pike_day_simple <- bam(formula = det_depth ~
@@ -117,7 +119,8 @@ itsadug::diagnostics(model = mld_gamm_pike_day) #it takes a while
 itsadug::report_stats(mld_gamm_pike_day)
 tab_model(mld_gamm_pike_day, show.ci = F)
 
-##Pike - night ####
+################################################################################ Pike - night #####################################################################################
+
 #Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
 tic('Model run')
 mdl_pike_night_simple <- bam(formula = det_depth ~
