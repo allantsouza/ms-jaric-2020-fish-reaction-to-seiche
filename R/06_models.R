@@ -32,7 +32,7 @@ detections <- detections %>%
   ),
   .funs = ~ scale(.)) #scale predictors only
 
-# All models use only one formula
+# All models use this formula as a start point: Models are re-fitted with increasing number of knots to check changes in effective ddegrees of freedom (edf).
 global_model_formula <- formula(
   det_depth ~
     s(seasonal_depth, k = 10, bs = 'cr') +
@@ -58,6 +58,8 @@ data_pike_day = detections %>%
                                test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
                              mutate(fishid = as_factor(fishid))
 
+# The same model is fitted with different number of knots (k) (10, 100, 200, 500 and 1000[1440 per day]) to see changes in edf.
+# When basis dimensions are estabilised between models we select the one where changes start to be insignificant. In this case k=100 is our choice.
 #Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
 tic('Model run')
 mdl_pike_day_simple <- bam(formula = det_depth ~
