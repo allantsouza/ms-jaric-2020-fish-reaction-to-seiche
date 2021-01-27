@@ -209,7 +209,7 @@ mld_gamm_pike_day_edf         2281.9432 213072.3    # The 100k model with fixed 
 # Is the 100k model with fixed edf preferred to 50k?
 compareML(mld_gamm_pike_day_cr_k50_edf, mld_gamm_pike_day_edf)  # 100k fx still has lower fREML score and AIC 
 # We can also compare models with and without fixed edf
-compareML(mld_gamm_pike_day, mld_gamm_pike_day_edf)             # The fixe model is better
+compareML(mld_gamm_pike_day, mld_gamm_pike_day_edf)             # The fixed model is better
 
 # Model summary
 summary.gam(mld_gamm_pike_day_edf)
@@ -239,7 +239,7 @@ plot(mld_gamm_pike_day_edf, select = 6, shade = TRUE, scale = 0, seWithMean = TR
 
 # The plots evidence that the smooth for mean_gradient shows linearity.
 # Additionally, edf keeps low and close to linear between models independently of the numer of knots, as previously tested so far.
-# Hence, we can enter mean_gradient as a linear paramtetric term.
+# Hence, we can enter mean_gradient as a linear parametric term.
 
 # 3.1. Re-fit a simplified model equivalent to mld_gamm_pike_day_edf
 
