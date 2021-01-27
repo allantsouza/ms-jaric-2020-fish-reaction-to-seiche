@@ -116,7 +116,7 @@ Bayesian Information Criterion 1232396 1290501   1357706 1218120     1452306 150
 # Compare the full-smoothing and the simplified models.
 # To summarize, only the model formulas of the selected model (before and after the edf fix) are shown.
 # This procedure has proven to be optimal for reducing overdispersion (for example, from overfitting), increasing both R^2 and the deviance explained and to get more accurate p-values. 
-# In fact, some predictor terms changed completely their significance before and after the adjustments or they had unreliable low p-values (other than the random smooths). 
+# In fact, some predictor terms changed completely their significance before and after the adjustments or they had unreliable low p-values (other than from random smooths) that are so corrected. 
 # In this case (pike-day), k=100 is our choice. The model is subsequently re-fitted by fixing edf and dropping one smooth function (mean_gradient). 
 
 # 1.1. Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
