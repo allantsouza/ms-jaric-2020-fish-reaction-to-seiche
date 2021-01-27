@@ -272,8 +272,8 @@ deviance(mld_gamm_pike_day_final)                   # ...deviance still improves
 [1] 269398.3                                       
 
 # Report stats
-itsadug::report_stats(mld_gamm_pike_day)
-tab_model(mld_gamm_pike_day, show.ci = F)
+itsadug::report_stats(mld_gamm_pike_day_final)
+tab_model(mld_gamm_pike_day_final, show.ci = F)
 gamtabs(mld_gamm_pike_day_final, caption="Summaty of mld_gamm_pike_day_final", comment=FALSE, type='html')
 
 ################################################################################ Pike - night #####################################################################################
