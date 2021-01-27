@@ -109,7 +109,7 @@ Bayesian Information Criterion 1232396 1290501   1357706 1218120     1452306 150
 ### MODEL SELECTION BY ADJUSTMENT OF BASIS DIMENSIONS ###
 #########################################################
 # The same base model is fitted with different number of knots (k) (10, 100, 200, 500 and 1000[1440 per day]) to test wether there are changes in the edf of the predictors.
-# When basis dimensions are stabilised between models we select the one where changes start to be insignificant. 
+# When basis dimensions are stabilised between models we select the one where changes start to be insignificant. Use the function gam.check() and check k-index, edf and k'.
 # Next, extract the edf for each smooth in the selected model and round them.
 # Re-fit the model with fixed edf (without penalization).
 # Check if the smooths of some predictors have a linear relationship and in that case, drop the smoothing function and re-fit the model.
@@ -119,7 +119,16 @@ Bayesian Information Criterion 1232396 1290501   1357706 1218120     1452306 150
 # In fact, some predictor terms changed completely their significance before and after the adjustments or they had unreliable low p-values (other than from random smooths) that are so corrected. 
 # In this case (pike-day), k=100 is our choice. The model is subsequently re-fitted by fixing edf and dropping one smooth function (mean_gradient). 
 
-# 1.1. Running the model without autocorrelation to estimate the rho value for the model with autocorrelation
+
+# 1.1. Select the optimal k basis dimension (omit these steps for simplicity)
+gam.check("model with k=10")
+gam.check("model with k=50")  
+gam.check("model with k=100")      # Model with optimal number of knots
+gam.check("model with k=200")
+gam.check("model with k=500")
+gam.check("model with k=1000")     
+ 
+# 1.2. Running the selected model without autocorrelation to estimate the rho value for the model with autocorrelation (this has already been done for previous step).
 tic('Model run')
 mdl_pike_day_simple <- bam(formula = det_depth ~
                              s(lake_therm_thickness_smoothed, k = 100, bs = 'cr') +
@@ -137,10 +146,10 @@ mdl_pike_day_simple <- bam(formula = det_depth ~
                            nthreads = 10, cluster = 10, gc.level = 0)
 toc()
 
-# 1.2. Assessing the starting rho value
+# 1.3. Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_pike_day_simple, plot = TRUE)
 
-# 1.3. Model with autocorrelation
+# 1.4. Model with autocorrelation
 tic('Model run takes')
 mld_gamm_pike_day <- bam(formula = det_depth ~
                            s(lake_therm_thickness_smoothed, k = 100, bs = 'cr') +
