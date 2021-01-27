@@ -123,7 +123,7 @@ Bayesian Information Criterion 1232396 1290501   1357706 1218120     1452306 150
 # 1.1. Select the optimal k basis dimension (omit these steps for simplicity)
 gam.check("model with k=10")
 gam.check("model with k=50")  
-gam.check("model with k=100")      # Model with optimal number of knots
+gam.check("model with k=100")      # Model with the optimal lower number of knots
 gam.check("model with k=200")
 gam.check("model with k=500")
 gam.check("model with k=1000")     
