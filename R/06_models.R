@@ -58,9 +58,9 @@ data_pike_day = detections %>%
                              mutate(fishid = as_factor(fishid))
 
 
-######################################
+#######################################
 ### CHOOSING THE RIGHT DISTRIBUTION ###
-######################################
+#######################################
 # Some dataset seems right or left skewed, others appear to require mixed distributions (e.g. Tweedie).
 # Fitting models with Gamma or inverse Gaussian is very time-consuming, more so if we need to adjust the basis dimensions and re-fit models.
 # I introduce the library "fitdistrplus" to help decide which distribution fits better to each of the subsets analyzed.
