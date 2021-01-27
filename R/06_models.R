@@ -204,7 +204,6 @@ mld_gamm_pike_day_edf <- bam(formula =
                          nthreads = 10, cluster = 10, gc.level = 0,
                          AR.start = startindex, rho = rho_start_value)
 
-
 # 2.3. Compare models 
 AIC(mld_gamm_pike_day_cr_edf,mld_gamm_pike_day_cr_k50, mld_gamm_pike_day_cr_k50_edf, mld_gamm_pike_day, mld_gamm_pike_day_edf)
 
@@ -266,7 +265,6 @@ mld_gamm_pike_day_final <- bam(formula =
                            family = 'gaussian',
                            nthreads = 10, cluster = 10, gc.level = 0,
                            AR.start = startindex, rho = rho_start_value)
-
 
 # 3.2. Check that the full-smoothing and simplified models are identical
 
