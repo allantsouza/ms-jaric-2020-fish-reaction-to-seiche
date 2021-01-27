@@ -63,7 +63,7 @@ data_pike_day = detections %>%
 #######################################
 # Some dataset seems right or left skewed, others appear to require mixed distributions (e.g. Tweedie).
 # Fitting models with Gamma or inverse Gaussian is very time-consuming, more so if we need to adjust the basis dimensions and re-fit models.
-# To help simplify the process, I introduce the library "fitdistrplus" to help decide which distribution fits better to each of the subsets analyzed.
+# To simplify the process, I introduce the library "fitdistrplus" to help decide which distribution fits better to each of the subsets analyzed.
 
 library(fitdistrplus)
 library(logspline)
