@@ -188,7 +188,7 @@ sum(resid(mld_gamm_pike_day, type = "pearson")^2) / df.residual(mld_gamm_pike_da
 f.df <- round(summary(mld_gamm_pike_day_cr_k100)$edf)+1  # get edf per smooth
 f.df <- pmax(f.df,3)                                     # minimum basis dimension is 3
 
-# 2.2. Re-fit the model with fixed edf for each smooth term (unpenalized using fx=TRUE)
+# 2.2. Re-fit the model with fixed edf for each smooth term (unpenalized using fx=TRUE except for random smooths)
 mld_gamm_pike_day_edf <- bam(formula =
                          det_depth ~
                          s(seasonal_depth, k=f.df[1], fx=TRUE) +
@@ -206,7 +206,6 @@ mld_gamm_pike_day_edf <- bam(formula =
 
 # 2.3. Compare models 
 AIC(mld_gamm_pike_day_cr_edf,mld_gamm_pike_day_cr_k50, mld_gamm_pike_day_cr_k50_edf, mld_gamm_pike_day, mld_gamm_pike_day_edf)
-
                                 df      AIC
 mld_gamm_pike_day_cr_edf      2244.0729 214831.3
 mld_gamm_pike_day_cr_k50       441.6427 239347.4
