@@ -128,7 +128,7 @@ gam.check("model with k=200")
 gam.check("model with k=500")
 gam.check("model with k=1000")     
  
-# 1.2. Running the selected model without autocorrelation to estimate the rho value for the model with autocorrelation (this has already been done for previous step).
+# 1.2. Running the selected model without autocorrelation to estimate the rho value for the model with autocorrelation (this has already been done for point 1.1).
 tic('Model run')
 mdl_pike_day_simple <- bam(formula = det_depth ~
                              s(lake_therm_thickness_smoothed, k = 100, bs = 'cr') +
