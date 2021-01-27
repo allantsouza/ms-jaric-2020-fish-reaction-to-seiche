@@ -63,7 +63,7 @@ data_pike_day = detections %>%
 #######################################
 # Some dataset seems right or left skewed, others appear to require mixed distributions (e.g. Tweedie).
 # Fitting models with Gamma or inverse Gaussian is very time-consuming, more so if we need to adjust the basis dimensions and re-fit models.
-# I introduce the library "fitdistrplus" to help decide which distribution fits better to each of the subsets analyzed.
+# To help simplify the process, I introduce the library "fitdistrplus" to help decide which distribution fits better to each of the subsets analyzed.
 
 library(fitdistrplus)
 library(logspline)
@@ -109,7 +109,7 @@ Bayesian Information Criterion 1232396 1290501   1357706 1218120     1452306 150
 ### MODEL SELECTION BY ADJUSTMENT OF BASIS DIMENSIONS ###
 #########################################################
 # The same base model is fitted with different number of knots (k) (10, 100, 200, 500 and 1000[1440 per day]) to test wether there are changes in the edf of the predictors.
-# When basis dimensions are estabilised between models we select the one where changes start to be insignificant. 
+# When basis dimensions are stabilised between models we select the one where changes start to be insignificant. 
 # Next, extract the edf for each smooth in the selected model and round them.
 # Re-fit the model with fixed edf (without penalization).
 # Check if the smooths of some predictors have a linear relationship and in that case, drop the smoothing function and re-fit the model.
