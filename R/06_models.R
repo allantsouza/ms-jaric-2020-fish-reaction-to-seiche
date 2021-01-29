@@ -150,7 +150,7 @@ rho_start_value <- start_value_rho(mdl_pike_day_simple, plot = TRUE)
 
 # 1.4. Model with autocorrelation
 tic('Model run takes')
-mld_gamm_pike_day <- bam(formula =
+mld_gamm_pike_day_cr_k100  <- bam(formula =
                               det_depth ~
                               s(seasonal_depth, k = 100, bs = 'cr') +
                               s(amplitude, k = 100, bs = 'cr')+
@@ -163,23 +163,23 @@ mld_gamm_pike_day <- bam(formula =
                               data = data_pike_day,  
                               family = 'gaussian',
                               nthreads = 10, cluster = 10, gc.level = 0,
-                         AR.start = startindex, rho = rho_start_value)   # autocorrelation
+                              AR.start = startindex, rho = rho_start_value)   # autocorrelation
 
 toc()
 
 # Checking the autocorrelation (split by fishid)
-acf_resid(model = mld_gamm_pike_day, split_pred = 'fishid')
+acf_resid(model = mld_gamm_pike_day_cr_k100, split_pred = 'fishid')
 par(mfrow = c(2,2))
 
 # Model summary
-summary.gam(mld_gamm_pike_day)
+summary.gam(mld_gamm_pike_day_cr_k100)
 
 # Extract R^2 
-summary(mld_gamm_pike_day)$r.sq   
+summary(mld_gamm_pike_day_cr_k100)$r.sq   
 [1] 0.745     # R^2 is not bad but can improve
 
 # Check overdispersion (phi)
-sum(resid(mld_gamm_pike_day, type = "pearson")^2) / df.residual(mld_gamm_pike_day)
+sum(resid(mld_gamm_pike_day_cr_k100, type = "pearson")^2) / df.residual(mld_gamm_pike_day_cr_k100)
 [1] 2.380257  # too high (phi > 1.5)
 
 # 2.1. Extract and round edf of the smooth terms (estimated with penalization) to fix them
@@ -187,60 +187,60 @@ f.df <- round(summary(mld_gamm_pike_day_cr_k100)$edf)+1  # get edf per smooth
 f.df <- pmax(f.df,3)                                     # minimum basis dimension is 3
 
 # 2.2. Re-fit the model with fixed edf for each smooth term (unpenalized using fx=TRUE except for random smooths)
-mld_gamm_pike_day_fx <-  bam(formula =
-                         det_depth ~
-                         s(seasonal_depth, k=f.df[1], fx=TRUE) +
-                         s(amplitude, k=f.df[2], fx=TRUE)+
-                         s(mean_gradient, k=f.df[3], fx=TRUE) +
-                         s(seasonal_depth, fishid,  k=f.df[4], bs="fs", m=1) +
-                         s(amplitude, fishid, k=f.df[5], bs="fs", m=1) +
-                         s(mean_gradient, fishid, k=f.df[6], bs="fs", m=1) +
-                         s(dets_ts, k=f.df[7], fx=TRUE)+
-                         s(fishid, dets_ts, k=f.df[8], bs="fs", m=1),
-                         data = data_pike_day,
-                         family = 'gaussian',
-                         nthreads = 10, cluster = 10, gc.level = 0,
-                         AR.start = startindex, rho = rho_start_value)
+mld_gamm_pike_day_cr_k100_fx <-  bam(formula =
+                                 det_depth ~
+                                 s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                 s(amplitude, k=f.df[2], fx=TRUE)+
+                                 s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                 s(seasonal_depth, fishid,  k=f.df[4], bs="fs", m=1) +
+                                 s(amplitude, fishid, k=f.df[5], bs="fs", m=1) +
+                                 s(mean_gradient, fishid, k=f.df[6], bs="fs", m=1) +
+                                 s(dets_ts, k=f.df[7], fx=TRUE)+
+                                 s(fishid, dets_ts, k=f.df[8], bs="fs", m=1),
+                                 data = data_pike_day,
+                                 family = 'gaussian',
+                                 nthreads = 10, cluster = 10, gc.level = 0,
+                                 AR.start = startindex, rho = rho_start_value)
 
 # 2.3. Compare models 
-AIC(mld_gamm_pike_day_cr_edf,mld_gamm_pike_day_cr_k50, mld_gamm_pike_day_cr_k50_fx, mld_gamm_pike_day, mld_gamm_pike_day_fx)
+AIC(mld_gamm_pike_day_cr_edf,mld_gamm_pike_day_cr_k50, mld_gamm_pike_day_cr_k50_fx, mld_gamm_pike_day_cr_k100, mld_gamm_pike_day_cr_k100_fx)
                                 df      AIC
-mld_gamm_pike_day_cr_edf      2244.0729 214831.3
+mld_gamm_pike_day_cr_fx       2244.0729 214831.3
 mld_gamm_pike_day_cr_k50       441.6427 239347.4
 mld_gamm_pike_day_cr_k50_fx   2248.3288 213448.5    # The 50k model with fixed edf is very close to 100k
-mld_gamm_pike_day              521.2288 237957.6
-mld_gamm_pike_day_fx          2281.9432 213072.3    # The 100k model with fixed edf has the lowest AIC
+mld_gamm_pike_day_cr_k100      521.2288 237957.6
+mld_gamm_pike_day_cr_k100_fx  2281.9432 213072.3    # The 100k model with fixed edf has the lowest AIC
 
 # Is the 100k model with fixed edf preferred to 50k?
-compareML(mld_gamm_pike_day_cr_k50_edf, mld_gamm_pike_day_fx)  # 100k fx still has lower fREML score and AIC 
+compareML(mld_gamm_pike_day_cr_k50_fx, mld_gamm_pike_day_cr_k100_fx)  # 100k fx still has lower fREML score and AIC 
 # We can also compare models with and without fixed edf
-compareML(mld_gamm_pike_day, mld_gamm_pike_day_fx)             # The fixed model is better
+compareML(mld_gamm_pike_day_cr_k100, mld_gamm_pike_day_cr_k100_fx)    # The fixed model is better
 
 # Model summary
-summary.gam(mld_gamm_pike_day_fx)
+summary.gam(mld_gamm_pike_day_cr_k100_fx)
 
 # Extract R^2 
-summary(mld_gamm_pike_day_fx)$r.sq   
+summary(mld_gamm_pike_day_cr_k100_fx)$r.sq   
 [1] 0.88        # R^2 has increased by ~15%/20% with respect to 100-k-non-fx model and default (10k)-non-fx model, respectively
 
 # Check overdispersion (phi)
-sum(resid(mld_gamm_pike_day_fx, type = "pearson")^2) / df.residual(mld_gamm_pike_day_fx)
+sum(resid(mld_gamm_pike_day_cr_k100_fx, type = "pearson")^2) / df.residual(mld_gamm_pike_day_cr_k100_fx)
 [1] 1.13283    # phi has decreased more than the unit (phi < 1.5)
 
 # Check residuals
-qq.gam(mld_gamm_pike_day_fx)             # Much better residuals than previous models
-gam.check(mld_gamm_pike_day_fx)          # The k' index seems quite good for all terms
+qq.gam(mld_gamm_pike_day_cr_k100_fx)             # Much better residuals than previous models
+gam.check(mld_gamm_pike_day_cr_k100_fx)          # The k' index seems quite good for all terms
 
 # Plot non-parametric predictors and random smooth effects
 par(mfrow = c(2,4))
-plot(mld_gamm_pike_day_fx, select = 1, shade = TRUE, scale = 0, seWithMean = TRUE)  # seasonal depth effect
-plot(mld_gamm_pike_day_fx, select = 2, shade = TRUE, scale = 0, seWithMean = TRUE)  # amplitude effect
-plot(mld_gamm_pike_day_fx, select = 3, shade = TRUE, scale = 0, seWithMean = TRUE)  # mean_gradient effect - Note the linear relationship with det_depth
-plot(mld_gamm_pike_day_fx, select = 4, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of seasonal_depth for each fish
-plot(mld_gamm_pike_day_fx, select = 5, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of amplitude for each fish
-plot(mld_gamm_pike_day_fx, select = 6, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of mean_gradient for each fish
-plot(mld_gamm_pike_day_fx, select = 6, shade = TRUE, scale = 0, seWithMean = TRUE)  # time effect
-plot(mld_gamm_pike_day_fx, select = 6, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of time for each fish
+plot(mld_gamm_pike_day_cr_k100_fx, select = 1, shade = TRUE, scale = 0, seWithMean = TRUE)  # seasonal depth effect
+plot(mld_gamm_pike_day_cr_k100_fx, select = 2, shade = TRUE, scale = 0, seWithMean = TRUE)  # amplitude effect
+plot(mld_gamm_pike_day_cr_k100_fx, select = 3, shade = TRUE, scale = 0, seWithMean = TRUE)  # mean_gradient effect - Note the linear relationship with det_depth
+plot(mld_gamm_pike_day_cr_k100_fx, select = 4, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of seasonal_depth for each fish
+plot(mld_gamm_pike_day_cr_k100_fx, select = 5, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of amplitude for each fish
+plot(mld_gamm_pike_day_cr_k100_fx, select = 6, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of mean_gradient for each fish
+plot(mld_gamm_pike_day_cr_k100_fx, select = 6, shade = TRUE, scale = 0, seWithMean = TRUE)  # time effect
+plot(mld_gamm_pike_day_cr_k100_fx, select = 6, shade = TRUE, scale = 0, seWithMean = TRUE)  # slope of time for each fish
 
 # The plots evidence that the smooth for mean_gradient shows linearity.
 # Additionally, edf keeps low and close to linear between models independently of the numer of knots, as previously tested so far.
@@ -265,12 +265,12 @@ mld_gamm_pike_day_final <- bam(formula =
 
 # 3.2. Check that the full-smoothing and simplified models are identical
 
-AIC(mld_gamm_pike_day_cr_k100_edf, mld_gamm_pike_day_final)
+AIC(mld_gamm_pike_day_cr_k100_fx, mld_gamm_pike_day_final)
                                     df      AIC
-mld_gamm_pike_day_cr_k100_edf 2281.943 213072.3
+mld_gamm_pike_day_cr_k100_fx  2281.943 213072.3
 mld_gamm_pike_day_final       2280.522 213072.6     # There are no differences between models but... 
 
-deviance(mld_gamm_pike_day_edf)
+deviance(mld_gamm_pike_day_cr_k100_fx)
 [1] 269419                  
 deviance(mld_gamm_pike_day_final)                   # ...deviance still improves a bit after dropping the smooth term for mean_gradient
 [1] 269398.3                                       
