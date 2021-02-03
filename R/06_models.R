@@ -139,10 +139,10 @@ mdl_pike_day_simple <- bam(formula =
                               s(amplitude, fishid,  bs="fs", m=1) +
                               s(mean_gradient, fishid,  bs="fs", m=1) +
                               s(dets_ts, k = 100, bs = 'cr') +
-                              s(fishid, dets_ts, bs="fs", m=1),
-                              data = data_pike_day,         # replace by dataset name
-                              family = 'gaussian',
-                              nthreads = 10, cluster = 10, gc.level = 0)
+                              s(fishid, dets_ts, bs="fs", m=1),  
+                              data = data_pike_day,                   # replace by dataset name
+                              family = 'gaussian', discrete=TRUE,     # adding discrete=TRUE substantially reduces computation time by creating low dimensional chunks of discrete data for cont. vars before fitting the model                             
+                              nthreads = 10, cluster = 10, gc.level = 0)                  
 toc()
 
 # 1.3. Assessing the starting rho value
@@ -161,7 +161,7 @@ mld_gamm_pike_day_k100  <- bam(formula =
                            s(dets_ts, k = 100, bs = 'cr') +
                            s(fishid, dets_ts, bs="fs", m=1),
                            data = data_pike_day,  
-                           family = 'gaussian',
+                           family = 'gaussian', discrete=TRUE,  
                            nthreads = 10, cluster = 10, gc.level = 0,
                            AR.start = startindex, rho = rho_start_value)   # autocorrelation
 
@@ -198,7 +198,7 @@ mld_gamm_pike_day_k100.fx <-  bam(formula =
                               s(dets_ts, k=f.df[7], fx=TRUE)+
                               s(fishid, dets_ts, k=f.df[8], bs="fs", m=1),
                               data = data_pike_day,
-                              family = 'gaussian',
+                              family = 'gaussian', discrete=TRUE,  
                               nthreads = 10, cluster = 10, gc.level = 0,
                                AR.start = startindex, rho = rho_start_value)
 
@@ -259,7 +259,7 @@ mld_gamm_pike_day_final <- bam(formula =
                            s(dets_ts, k=f.df[7], fx=TRUE)+
                            s(fishid, dets_ts, k=f.df[8], bs="fs", m=1),
                            data = data_pike_day,
-                           family = 'gaussian',
+                           family = 'gaussian', discrete=TRUE, 
                            nthreads = 10, cluster = 10, gc.level = 0,
                            AR.start = startindex, rho = rho_start_value)
 
