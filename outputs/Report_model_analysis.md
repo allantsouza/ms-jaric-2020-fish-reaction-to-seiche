@@ -27,17 +27,17 @@
 
 Load libraries.
 
-[:books:](https://cran.r-project.org/web/packages/mgcv/index.html)`library(mgcv)`  
-[:books:](https://cran.r-project.org/web/packages/itsadug/index.html)`library(itsadug)`  
-[:books:](https://cran.r-project.org/web/packages/gratia/index.html)`library(gratia)`  
-[:books:](https://cran.r-project.org/web/packages/AICcmodavg/index.html)`library(AICcmodavg)`  
-[:books:](https://cran.r-project.org/web/packages/knitr/index.html)`library(knitr)`  
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`  
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`  
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`  
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`  
-[:books:](https://cran.r-project.org/web/packages/fitdistrplus/index.html)`library(fitdistrplus)`  
-[:books:](https://cran.r-project.org/web/packages/logspline/index.html)`library(logspline)`  
+[:books:](https://cran.r-project.org/web/packages/mgcv/index.html)`library(mgcv)`
+[:books:](https://cran.r-project.org/web/packages/itsadug/index.html)`library(itsadug)`
+[:books:](https://cran.r-project.org/web/packages/gratia/index.html)`library(gratia)`
+[:books:](https://cran.r-project.org/web/packages/AICcmodavg/index.html)`library(AICcmodavg)`
+[:books:](https://cran.r-project.org/web/packages/knitr/index.html)`library(knitr)`
+[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
+[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
+[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
+[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
+[:books:](https://cran.r-project.org/web/packages/fitdistrplus/index.html)`library(fitdistrplus)`
+[:books:](https://cran.r-project.org/web/packages/logspline/index.html)`library(logspline)`
 
 Load the whole dataset.
 ``` r
@@ -813,7 +813,7 @@ m1_wels_night_gamma_20k_high_main_final <- bam(det_depth ~ s(seasonal_depth, k=f
 
 :chart: **Plots**
 
-![Seiche_models](/outputs/plots/m1_wels_night_final_20k_main_final.png "Seiche_models")
+![Seiche_models](/outputs/plots/m1_wels_night_gamma_20k_high_main_final.png "Seiche_models")
 
 
 # <a name="headSpeciesTench"></a>_Tench_[:page_facing_up:](#headindex)
