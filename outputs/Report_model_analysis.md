@@ -27,17 +27,17 @@
 
 Load libraries.
 
-[:books:](https://cran.r-project.org/web/packages/mgcv/index.html)`library(mgcv)`  
-[:books:](https://cran.r-project.org/web/packages/itsadug/index.html)`library(itsadug)`  
-[:books:](https://cran.r-project.org/web/packages/gratia/index.html)`library(gratia)`  
-[:books:](https://cran.r-project.org/web/packages/AICcmodavg/index.html)`library(AICcmodavg)`  
-[:books:](https://cran.r-project.org/web/packages/knitr/index.html)`library(knitr)`  
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`  
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`  
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`  
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`  
-[:books:](https://cran.r-project.org/web/packages/fitdistrplus/index.html)`library(fitdistrplus)`  
-[:books:](https://cran.r-project.org/web/packages/logspline/index.html)`library(logspline)`  
+[:books:](https://cran.r-project.org/web/packages/mgcv/index.html)`library(mgcv)`
+[:books:](https://cran.r-project.org/web/packages/itsadug/index.html)`library(itsadug)`
+[:books:](https://cran.r-project.org/web/packages/gratia/index.html)`library(gratia)`
+[:books:](https://cran.r-project.org/web/packages/AICcmodavg/index.html)`library(AICcmodavg)`
+[:books:](https://cran.r-project.org/web/packages/knitr/index.html)`library(knitr)`
+[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
+[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
+[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
+[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
+[:books:](https://cran.r-project.org/web/packages/fitdistrplus/index.html)`library(fitdistrplus)`
+[:books:](https://cran.r-project.org/web/packages/logspline/index.html)`library(logspline)`
 
 Load the whole dataset.
 ``` r
@@ -1250,7 +1250,7 @@ m1_rudd_day_20k_high_random_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1]
 ## <a name="headSpeciesRudd"></a>![Image name](/outputs/icons/rudd_body_1.png) [:waning_crescent_moon:](#head1)
 
 This dataset fits better with a log normal distribution. In general, any of the models fitted showed poor residuals and edf/k´ ratios. The T-distribution did not result in a better model fit<br />
-Despite its higher <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> and AIC the k20 model is preferred to models with higher k-values, mixed (lower or higher for the random terms) or not according to Chi-square test.<br />
+The k20 model is preferred to models with higher k-values, mixed (lower or higher for the random terms) or not according to Chi-square test.<br />
 Although the k100 model has higher <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> than the k20 model, in no case did increasing the k-value improve the edf/k` ratio or the k-index. Along with this, the k100 model could not be re-fitted with fixed degrees of freedom, the significance of the main-effects terms were consistent with the k20 model as well as the general patterns besides the level of wiggliness.<br />
 
 :balance_scale: **Model**
