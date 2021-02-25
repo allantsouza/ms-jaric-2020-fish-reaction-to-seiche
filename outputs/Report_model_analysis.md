@@ -582,7 +582,7 @@ Of the k20 models, the one with higher k-value for the random terms was selected
 AIC_table <- AIC(m1_wels_day_gamma_20k_high_global,m1_wels_day_gamma_20k_high_random,
                  m1_wels_day_gamma_20k,m1_wels_day_gamma_40k,m1_wels_day_gamma_10k)%>%
              rownames_to_column(var= "Model")%>%
-             mutate(data_source = rep(c("data_tench_night"), each=1))%>%
+             mutate(data_source = rep(c("data_wels_day"), each=1))%>%
              group_by(data_source)%>%
              mutate(deltaAIC = AIC - min(AIC))%>%
              ungroup()%>%
@@ -829,7 +829,7 @@ The re-fitted k10 scat model with fixed df was preferred to either penalized k50
 ``` r
 AIC_table <- AIC(m1_tench_day_10k,m1_tench_day_scat,m1_tench_day_fs_cr,m1_tench_day,m1_tench_day_fs_cr_scat)%>%
              rownames_to_column(var= "Model")%>%
-             mutate(data_source = rep(c("data_wels_day"), each=1))%>%
+             mutate(data_source = rep(c("data_tench_day"), each=1))%>%
              group_by(data_source)%>%
              mutate(deltaAIC = AIC - min(AIC))%>%
              ungroup()%>%
@@ -1249,9 +1249,34 @@ m1_rudd_day_20k_high_random_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1]
 
 ## <a name="headSpeciesRudd"></a>![Image name](/outputs/icons/rudd_body_1.png) [:waning_crescent_moon:](#head1)
 
-This dataset fits better with a log normal distribution. In general, any of the models fitted showed poor residuals and edf/k´ ratios. The T-distribution did not result in a better model fit<br />
-The k20 model is preferred to models with higher k-values, mixed (lower or higher for the random terms) or not according to Chi-square test.<br />
+This dataset fits better with a log normal distribution. In general, any of the models fitted showed both poor residuals patterns and edf/k´ ratios. The T-distribution did not result in a better model fit<br />
+The k20 model is preferred to models with higher k-values, mixed (lower or higher for the random terms) or not according to Chi-square test and AIC values.<br />
 Although the k100 model has higher <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> than the k20 model, in no case did increasing the k-value improve the edf/k` ratio or the k-index. Along with this, the k100 model could not be re-fitted with fixed degrees of freedom, the significance of the main-effects terms were consistent with the k20 model as well as the general patterns besides the level of wiggliness.<br />
+
+``` r
+AIC_table <- AIC(m1_rudd_night_20k_high_global,m1_rudd_night_20k_high_random,m1_rudd_night_20k,m1_rudd_night_10k)%>%
+             rownames_to_column(var= "Model")%>%
+             mutate(data_source = rep(c("data_rudd_night"), each=1))%>%
+             group_by(data_source)%>%
+             mutate(deltaAIC = AIC - min(AIC))%>%
+             ungroup()%>%
+             dplyr::select(-data_source)%>%
+             mutate_at(.vars = vars(df,AIC, deltaAIC),
+                       .funs = funs(round,.args = list(digits=0)))
+
+kable(AIC_table)
+```
+|Model                         |  df|   AIC| deltaAIC|
+|:-----------------------------|---:|-----:|--------:|
+|m1_rudd_night_20k_high_global | 406| 30571|     2119|
+|m1_rudd_night_20k_high_random | 682| 28849|      398|
+|m1_rudd_night_20k             | 719| 28451|        0|
+|m1_rudd_night_10k             | 411| 30087|     1636|
+
+
+:balance_scale: **Model**
+
+``` r
 
 :balance_scale: **Model**
 
@@ -1606,4 +1631,5 @@ m3_logger_site <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
 - **Wood, S. N. (2017)**. Generalized additive models: an introduction with R. Second Edition. Boco Raton: CRC Press.
 - **Wood, S. N., Goude, Y., & Shaw, S. (2015)**. Generalized additive models for large datasets. Journal of the Royal Statistical Society, Series C 64(1): 139-155. http://dx.doi.org/10.1111/rssc.12068
 - **Wood, S. N., Pya, N., & Saefken, B. (2016)**. Smoothing parameter and model selection for general smooth models. Journal of the American Statistical Association, 111:516, 1548-1563. https://doi.org/10.1080/01621459.2016.1180986
+
 
