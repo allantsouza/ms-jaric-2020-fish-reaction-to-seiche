@@ -102,7 +102,7 @@ style="     color: #273746 !important;border-radius: 4px; padding-right: 4px; pa
 The Fish ID
 </td>
 <td style="text-align:left;font-style: italic;">
-string with 14-24 unique values (depending on data subset)
+string with 12-19 unique values (depending on data subset)
 </td>
 </tr>
 <tr>
