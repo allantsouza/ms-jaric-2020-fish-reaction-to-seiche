@@ -27,17 +27,17 @@
 
 Load libraries.
 
-[:books:](https://cran.r-project.org/web/packages/mgcv/index.html)`library(mgcv)`
-[:books:](https://cran.r-project.org/web/packages/itsadug/index.html)`library(itsadug)`
-[:books:](https://cran.r-project.org/web/packages/gratia/index.html)`library(gratia)`
-[:books:](https://cran.r-project.org/web/packages/AICcmodavg/index.html)`library(AICcmodavg)`
-[:books:](https://cran.r-project.org/web/packages/knitr/index.html)`library(knitr)`
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
-[:books:](https://cran.r-project.org/web/packages/fitdistrplus/index.html)`library(fitdistrplus)`
-[:books:](https://cran.r-project.org/web/packages/logspline/index.html)`library(logspline)`
+[:books:](https://cran.r-project.org/web/packages/mgcv/index.html)`library(mgcv)`  
+[:books:](https://cran.r-project.org/web/packages/itsadug/index.html)`library(itsadug)`  
+[:books:](https://cran.r-project.org/web/packages/gratia/index.html)`library(gratia)`  
+[:books:](https://cran.r-project.org/web/packages/AICcmodavg/index.html)`library(AICcmodavg)`  
+[:books:](https://cran.r-project.org/web/packages/knitr/index.html)`library(knitr)`  
+[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`  
+[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`  
+[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`  
+[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`  
+[:books:](https://cran.r-project.org/web/packages/fitdistrplus/index.html)`library(fitdistrplus)`  
+[:books:](https://cran.r-project.org/web/packages/logspline/index.html)`library(logspline)`  
 
 Load the whole dataset.
 ``` r
