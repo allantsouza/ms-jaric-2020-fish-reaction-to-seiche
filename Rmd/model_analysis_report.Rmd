@@ -1,0 +1,1034 @@
+---
+title: "Report of seiche model analysis"
+author: "Rubén Rabaneda Bueno"
+date: "25/02/2021"
+output:
+  md_document:
+    variant: markdown_github
+---
+
+
+Load the whole dataset.
+``` r
+fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccdc") %>%
+  mutate(data_path = here("data/products/fish",paste0(tag_sn, ".csv")))
+
+detections <- fish_raw %>%
+  filter(file.exists(data_path)) %>%
+  pull(data_path) %>%
+  map(~ read_csv(.)) %>%
+  reduce(rbind) %>%
+  inner_join(fish_raw[,c("tag_sn","fishid", "species")]) %>%
+  dplyr::select(
+         fishid,
+         species,
+         is_valid_seiche,
+         diel_period,
+         det_depth,
+         dets_ts,
+         amplitude = det_therm_deviation_crit,
+         seasonal_depth = det_location_therm_depth_smoothed_crit,
+         mean_gradient = det_therm_gradient_crit
+         )
+```
+
+Transform continous covariates (scaling by 2 SD).
+``` r
+
+detections$dets_ts<-as.integer(detections$dets_ts)
+
+detections <- detections %>%
+  mutate_at(c("mean_gradient",
+              "seasonal_depth",
+              "amplitude"
+  ),
+  .funs = ~ scale(.))
+```
+
+Generate data subsets for each species and diel periods.
+
+``` r
+data_pike_day = detections %>%
+                             filter(species == "pike" &
+                                      diel_period == 'day' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+
+data_pike_night = detections %>%
+                             filter(species == "pike" &
+                                      diel_period == 'night' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+data_wels_day = detections %>%
+                             filter(species == "wels" &
+                                      diel_period == 'day' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+
+data_wels_night = detections %>%
+                             filter(species == "wels" &
+                                      diel_period == 'night' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+data_tench_day = detections %>%
+                             filter(species == "tench" &
+                                      diel_period == 'day' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+
+data_tench_night = detections %>%
+                             filter(species == "tench" &
+                                      diel_period == 'night' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+data_rudd_day = detections %>%
+                             filter(species == "rudd" &
+                                      diel_period == 'day' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+
+data_rudd_night = detections %>%
+                             filter(species == "rudd" &
+                                      diel_period == 'night' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+
+```
+
+# Global model formula
+
+The global model formula incorporates an **AR(1)** autoregressive residual term. This is found to be suitable for the different data subsets when compared to others autocorrelation structures. First, we fit the model without AR(1) component in order to estimate the **rho-value** and then re-fit the model with the AR1 structure.<br />
+Included is a squared first derivative penalty term (`m=1`) for the _random factor-smooth interactions_ to correct uncertainty around the mean of the _main-effects_ smoothers (with second derivative penalty, `m=2` by default) to reduce concurvity between both smoothers.<br />
+Adding the argument `discrete=TRUE` substantially reduces computation time by creating bins of discrete data for each variable before fitting the model.<br />
+
+The global model formula can be expressed as follows:
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" title="\boldsymbol{E\left ( y_{i} \right )}= \beta_{0} + f_{1}\left ( X_{1i} \right ) + f_{2}\left ( X_{1i} \right )_{id_{i}} + f_{3}\left ( X_{2i} \right ) + f_{4}\left ( X_{2i} \right )_{id_{i}} + f_{5}\left ( X_{3i} \right ) + f_{6}\left ( X_{3i} \right )_{id_{i}} + f_{7}\left ( t_{i} \right ) + f_{8}\left ( t_{i} \right )_{id_{i}} + \varepsilon _{i}" /></a>
+
+where:
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" title="\boldsymbol{E\left ( y_{i} \right )}" /></a>
+is the expected value of depth for a fish <a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a>
+at time <a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a>
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\beta_{0}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\beta_{0}" title="\beta_{0}" /></a> is the is the average value of the response (model intercept).
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=X_{1i},&space;X_{2i},&space;X_{3i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?X_{1i},&space;X_{2i},&space;X_{3i}" title="X_{1i}, X_{2i}, X_{3i}" /></a> are main-effects of the continuous covariates (i.e., seasonal depth, mean gradient and amplitude).
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a> is the average time effects trend.
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=f_{1-8}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?f_{1-8}" title="f_{1-8}" /></a> are smoothing functions of the covariates <a href="https://www.codecogs.com/eqnedit.php?latex=X_{1i},&space;X_{2i},&space;X_{3i},&space;t" target="_blank"><img src="https://latex.codecogs.com/svg.latex?X_{1i},&space;X_{2i},&space;X_{3i},&space;t" title="X_{1i}, X_{2i}, X_{3i}, t" /></a> for a fish <a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a>.
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a> is the _Fish ID_ group-level factor.
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\varepsilon&space;_{i}" title="\varepsilon _{i}" /></a> is the random error term including the random smooths and an AR(1) autoregressive residual term.
+
+
+### Model 1: Main-effects smoothers + Group-level smoothers with same wiggliness (Random factor-smoother interaction)
+
+Depth is modelled as a function of eight smoother terms where we find main-effects functions for the covariates plus fish-specific deviations around that main functions. Thus, change in fish depth is non-linear across the range of each covariate (seasonal depth, amplitude, mean gradient) and over time, all of which are modelled as _factor-smooth interactions_ using argument `bs"fs"`.<br />
+With this specification, gam treats random effects as smooths allowing a separate smooth for each level of _fishid_, with the same smoothing parameter for all smooths (see `?mgcv::smooth.construct.fs.smooth.spec`):
+- 4 *main-effects* smoothers (with cubic splines) for all observations of each covariate (individual effects have a common penalty term).
+- 0 group-specific *random-effect smoothers* (without fish-specific intercepts).
+- 4 group-level *random factor-smoother interactions* (i.e., for all _Fish ID_ with `bs="fs"`):
+  - A penalty to shrink these smoothers toward zero.
+  - A common smoothing parameter for all _Fish ID_ smoothers with same wiggliness (˜<a href="https://www.codecogs.com/eqnedit.php?latex=\simeq" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\simeq" title="\simeq" /></a> functional responses for all _Fish ID_ )
+  - Different shapes of the smooth terms (~inter-individual variation in responses, t2).
+``` r
+m1 <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+		                  s(amplitude, bs="cr", k=10) +
+                      s(mean_gradient, bs="cr", k=10) +
+                      s(dets_ts, bs="cr", k=10) +
+                      s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                      s(amplitude, fishid, bs="fs", k=10, m=1) +
+                      s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                      s(dets_ts, fishid, bs="fs", k=10, m=1) +
+                      data=data_wels_day, method="REML", family="gaussian",
+                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                      AR.start=startindex, rho=rho_start_value)
+```
+This is equivalent to:
+``` r
+m1 <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+		                  s(amplitude, bs="cr", k=10) +
+                      s(mean_gradient, bs="cr", k=10) +
+                      s(dets_ts, bs="cr", k=10) +
+                      t2(seasonal_depth, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE) +
+                      t2(amplitude, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE) +
+                      t2(mean_gradient, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE) +
+                      t2(dets_ts, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE),
+                      data=data_wels_day, method="REML", family="gaussian",
+                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                      AR.start=startindex, rho=rho_start_value)
+```
+(but see **Variable selection and parameters estimation of the main and random smooth effects**)
+
+:information_source: _Note that the default spline used is `"tp"` unless otherwise specified. In the models formuia I specify cyclic splines (`"cr"`) for the _main-effects smoothers_ while the _random smoothers_ use the default `"tp"` that is equivalent to specifying `xt="tp"` in the first formula._
+
+
+# Final models
+
+Based on the global structure (**Model 1**), model selection went through the following steps:
+
+1. Choose the error distribution that fits each data subset best, based on maximum goodness-of-fit estimation, AIC and inspection of residual patterns using QQ plots.
+2. Splines selection: try different splines functions (e.g., `"cr"` vs. `"tp"`).<br />
+3.  Try different number of basis dimensions (**k-value**). Shift k-value from 10 to 20 to 50 to n:<br />
+  - The model fitted uses group-level _random factor-smooth interactions_ where the k-value is determined using the `gam.check()` function.<br />
+  - After fitting an initial model with k=10 (default), `gam.check()` is used to see whether more wiggliness is necessary, i.e., whether the smooths use up all of df (edf <a href="https://www.codecogs.com/eqnedit.php?latex=\approx" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\approx" title="\approx" /></a> k´) or not (edf < k`). <br />
+  - If `gam.check()` suggests that more wiggliness is necessary (edf <a href="https://www.codecogs.com/eqnedit.php?latex=\approx" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\approx" title="\approx" /></a> k`), this procedure is repeated again using models with increased k-values allowing for the splines to adapt to the wiggly and non-wiggly parts.<br />
+  - The k-value can be different for both _main-effects_ smoothers and _random factor-smooth interactions_ (mixed k: more or less wiggliness for each term).<br />
+4. Compare models using residuals QQ plots, AIC and <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a>. However, the AIC-based method should be treated with care when applied to models including an AR1 structure or *random factor-smoother interactions* as it is the case. Instead, performing Chi-square test with the functions `anova()` (_mgcv_ package) and `compareML()` (_itsadug_ package) is generally preferred and more accurate (mostly for non-normal error models).<br />
+5. Where appropiate (linear relationships), compute a simplified equivalent model by dropping the smoothing functions. Compare the full-smoothing and the simplified models (I omit this step in this report).<br />
+6. On the selected model, extract and round the edf of the smooth terms (estimated with penalization).<br />
+7. Re-fit the model with fixed edf (un-penalized) for the _main-effects smoothers_ using `fx=TRUE`, excluding the _random group-level smoothers_.<br />
+8. Compare models with and without fixed edf.
+
+
+# Pike
+
+## Pike-Day
+
+For this specific data set, given that AIC model selection is a questionable method here as outlined in **Final models**, we computed models using either Gaussian or an alternative scaled T-distribution (`"scat"`) with cubic splines (`"cr"`) for the _random factor-smoother interactions_. Overall, the data fitted well to a Gaussian distribution while the latter distribution didn´t improve the model fit.<br />
+Models k10, k20 and k50 with equal or mixed k-values (higher or lower for the random terms) were compared through Chi-square test using the function _compareML()_. In all cases, the models presented edf/k´ ratios far from ideal, however, the residuals patterns distribution for the smooth terms of those models were relatively acceptable.<br />
+The mixed k50 model (higher for the random terms) was preferred but given that more data are necessary to estimate the larger number of coefficients from the increased complexity, it couldn´t be computed with fixed df. We finally kept the next closest in preference based on Chi-square test and distribution of residual patterns, with a <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> indicating very good performance.<br />
+
+``` r
+m1s_pike_day_20k_high_random <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                                s(amplitude, bs="cr", k=10) +
+                                                s(mean_gradient, bs="cr", k=10) +
+                                                s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                                s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                                s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                                s(dets_ts, bs="cr", k=10) +
+                                                s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                                data = data_pike_day,
+                                                family = 'gaussian', discrete=TRUE,
+                                                nthreads=20, cluster=20, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_pike_day_20k_high_random, plot = TRUE)
+
+m1_pike_day_20k_high_random <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                               s(amplitude, bs="cr", k=10) +
+                                               s(mean_gradient, bs="cr", k=10) +
+                                               s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                               s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                               s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                               s(dets_ts, bs="cr", k=10) +
+                                               s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                               data = data_pike_day,
+                                               family = 'gaussian', discrete=TRUE,
+                                               nthreads=20, cluster=20, gc.level=0,
+                                               AR.start = startindex, rho = rho_start_value)
+```
+
+Re-fit the model with fixed degreees of freedom
+
+:balance_scale: **Final model**
+``` r
+rho_start_value <- start_value_rho(m1s_pike_day_20k_high_random, plot=TRUE)
+
+f.df <- round(summary(m1_pike_day_20k_high_random)$edf)+1 # get edf per smooth
+f.df <- pmax(f.df,3)                                      # minimum basis dimension is 3
+
+m1_pike_day_20k_high_random_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                                     s(amplitude, k=f.df[2], fx=TRUE)+
+                                                     s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                                     s(seasonal_depth, fishid, bs="fs", k=f.df[4], m=1) +
+                                                     s(amplitude, fishid, bs="fs", k=f.df[5], m=1) +
+                                                     s(mean_gradient, fishid, bs="fs", k=f.df[6], m=1) +
+                                                     s(dets_ts, k=f.df[7], fx=TRUE)+
+                                                     s(fishid, dets_ts, bs="fs", k=f.df[8], m=1),
+                                                     data = data_pike_day,
+                                                     family = 'gaussian', discrete=TRUE,
+                                                     nthreads=10, cluster=10, gc.level=0,
+                                                     AR.start = startindex, rho = rho_start_value)
+
+```
+
+## Pike-Nigth
+
+The Gaussian distribution, besides the poor residuals patterns, was an optimal fit based on maximum goodness-of-fit estimation. Models were re-fitted with a scaled T-distribution (`"scat"`) and compared using Chi-square test that showed an improvement in residuals patterns.<br />
+Of all models fitted, the one with k=10 was the most robust in terms of deviance and residuals patterns and was always preferred to k20 and k50 models either with equal or mixed k-values (higher or lower for the random terms).<br />
+After fixing the df, the k10 model was approximated by an un-penalized mixed k20 model (higher for the random terms) with cubic splines (`"cr"`) instead of  (`"tp"`) basis functions, and higher <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> (+8) but the Chi-square test determined that the simpler k10 model was preferred.<br />
+
+``` r
+m1_pike_night_10k_scat <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                          s(amplitude, bs="cr", k=10) +
+                                          s(mean_gradient, bs="cr", k=10) +
+                                          s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                                          s(amplitude, fishid, bs="fs", k=10, m=1) +
+                                          s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                                          s(dets_ts, bs="cr", k=10) +
+                                          s(fishid, dets_ts, bs="fs", k=10, m=1),
+                                          data=data_pike_night,
+                                          family='scat', discrete=TRUE,
+                                          nthreads=10, cluster=10, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_pike_night_10k_scat, plot=TRUE)
+
+m1_pike_night_10k_scat <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                          s(amplitude, bs="cr", k=10) +
+                                          s(mean_gradient, bs="cr", k=10) +
+                                          s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                                          s(amplitude, fishid, bs="fs", k=10, m=1) +
+                                          s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                                          s(dets_ts, bs="cr", k=10) +
+                                          s(fishid, dets_ts, bs="fs", k=10, m=1),
+                                          data=data_pike_night,
+                                          family='scat', discrete=TRUE,
+                                          nthreads=10, cluster=10, gc.level=0,
+                                          AR.start = startindex, rho = rho_start_value)
+
+```
+
+Re-fit the model with fixed degreees of freedom
+
+``` r
+rho_start_value <- start_value_rho(m1s_pike_night_10k_scat, plot=TRUE)
+
+f.df <- round(summary(m1_pike_night_10k_scat)$edf)+1 # get edf per smooth
+f.df <- pmax(f.df,3)                                 # minimum basis dimension is 3
+
+m1_pike_night_10k_scat_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                                s(amplitude, k=f.df[2], fx=TRUE)+
+                                                s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                                s(seasonal_depth, fishid, bs="fs", k=f.df[4], m=1) +
+                                                s(amplitude, fishid, bs="fs", k=f.df[5], m=1) +
+                                                s(mean_gradient, fishid, bs="fs", k=f.df[6], m=1) +
+                                                s(dets_ts, k=f.df[7], fx=TRUE)+
+                                                s(fishid, dets_ts, bs="fs", k=f.df[8], m=1),
+                                                data=data_pike_night,
+                                                family='scat', discrete=TRUE,
+                                                nthreads=10, cluster=10, gc.level=0,
+                                                AR.start = startindex, rho = rho_start_value)
+```
+
+# Wels catfish
+
+## Wels-Day
+
+Overall, the data fitted better to a scaled T-distribution where random smooths with cubic splines (`"cr"`) seem to do much better than with (`"tp"`) basis functions, based on AIC and the look of the residuals patterns for all smoothers. However, for the same k-value, models fitted with the Gamma distribution showed an improvement in the edf/k´ ratio as well as a 2-units increase in the <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> value.<br />
+The Gamma distribution was preferred to any other distribution based on maximum goodness-of-fit estimation but models with the two distributions were further compared. The Chi-square tests show that models with the Gamma distribution are indeed a better fit to the data. Of these, k20 models either with equal or mixed k-values (higher for the random terms) exhibit a balance between edf/k´ ratio and <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> while re-fitting with un-penalized smoother terms unlike models with k <a href="https://www.codecogs.com/eqnedit.php?latex=\geq" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\geq" title="\geq" /></a> 40, having more coefficients to estimate than actual data. The latter models had lower <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> than fixed k20 models and worse edf/k´ ratios as the k-value increased.<br />
+Of the k20 models, the one with higher k-value for the random terms was selected in Chi-square test. In this model, three of the _main-effects_ terms showed a linear relationship with the response.<br />
+``` r
+
+AIC_table <- AIC(m1_wels_day_gamma_20k_high_global,m1_wels_day_gamma_20k_high_random,
+                 m1_wels_day_gamma_20k,m1_wels_day_gamma_40k,m1_wels_day_gamma_10k)%>%
+             rownames_to_column(var= "Model")%>%
+             mutate(data_source = rep(c("data_tench_night"), each=1))%>%
+             group_by(data_source)%>%
+             mutate(deltaAIC = AIC - min(AIC))%>%
+             ungroup()%>%
+             dplyr::select(-data_source)%>%
+             mutate_at(.vars = vars(df,AIC, deltaAIC),
+                       .funs = funs(round,.args = list(digits=0)))
+
+kable(AIC_table)
+```
+|Model                             |   df|    AIC| deltaAIC|
+|:---------------------------------|----:|------:|--------:|
+|m1_wels_day_gamma_20k_high_global |  375| 902357|      930|
+|m1_wels_day_gamma_20k_high_random |  631| 901427|        0|
+|m1_wels_day_gamma_20k             |  636| 903617|     2190|
+|m1_wels_day_gamma_10k             |  368| 903605|     2178|
+|m1_wels_day_gamma_40k             | 1205| 903748|     2322|
+
+``` r
+m1s_wels_day_gamma_20k_high_random <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                                      s(amplitude, bs="cr", k=10) +
+                                                      s(mean_gradient,  bs="cr", k=10) +
+                                                      s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                                      s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                                      s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                                      s(dets_ts, bs="cr", k=10) +
+                                                      s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                                      data=data_wels_day,
+                                                      family=Gamma(link = "log"), discrete=TRUE,
+                                                      nthreads=10, cluster=10, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_wels_day_gamma_20k_high_random, plot=TRUE)
+
+m1_wels_day_gamma_20k_high_random <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                                     s(amplitude, bs="cr", k=10) +
+                                                     s(mean_gradient,  bs="cr", k=10) +
+                                                     s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                                     s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                                     s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                                     s(dets_ts, bs="cr", k=10) +
+                                                     s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                                     data=data_wels_day,
+                                                     family=Gamma(link = "log"), discrete=TRUE,
+                                                     nthreads=10, cluster=10, gc.level=0,
+                                                     AR.start=startindex, rho=rho_start_value)
+```
+
+Re-fit the model with fixed degreees of freedom
+
+``` r
+rho_start_value <- start_value_rho(m1s_wels_day_gamma_20k_high_random, plot=TRUE)
+
+f.df <- round(summary(m1_wels_day_gamma_20k_high_random)$edf)+1 # get edf per smooth
+f.df <- pmax(f.df,3)                                            # minimum basis dimension is 3
+
+m1_wels_day_gamma_20k_high_random_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                                           s(amplitude, k=f.df[2], fx=TRUE)+
+                                                           s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                                           s(seasonal_depth, fishid, bs="fs", k=f.df[4], m=1) +
+                                                           s(amplitude, fishid, bs="fs", k=f.df[5], m=1) +
+                                                           s(mean_gradient, fishid, bs="fs", k=f.df[6], m=1) +
+                                                           s(dets_ts, k=f.df[7], fx=TRUE)+
+                                                           s(fishid, dets_ts, bs="fs", k=f.df[8], m=1),
+                                                           data=data_wels_day,
+                                                           family="scat", discrete=TRUE,
+                                                           nthreads=10, cluster=10, gc.level=0,
+                                                           AR.start=startindex, rho=rho_start_value)
+```
+
+## Wels-Night
+
+This data fitted better with a Gamma distribution and reached an optimal k-value at 20 when higher k-value for the main-effects terms was specified.<br />
+Using Chi-square test, the mixed k20 model (higher for the main-effects) was always preferred to default k20 and mixed k20 (higher for the random terms) models and to k50 and k100 models, irrespective of the k-value category (mixed, non-mixed). Thus, k20 models with mixed k-values (higher for the main-effects) was selected against k50 and k100 models with mixed k-values (higher for the main-effects).<br />
+Preference for higher wiggliness of the _main-effects smoothers_ indicates that mean functional response of the population tends to be more variable than at the individual-level, hence, fish-specific deviations around that main-effects functions are lower than expected from average population variability.
+
+``` r
+m1s_wels_night_gamma_20k_high_main <- bam(det_depth ~ s(seasonal_depth, k=20, bs="cr") +
+                                                      s(amplitude, k=20, bs="cr") +
+                                                      s(mean_gradient, k=20, bs="cr") +
+                                                      s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                                                      s(amplitude, fishid, bs="fs", k=10, m=1) +
+                                                      s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                                                      s(dets_ts, k=20, bs="cr") +
+                                                      s(fishid, dets_ts, bs="fs", k=10, m=1),
+                                                      data=data_wels_night,
+                                                      family=Gamma(link = "log"), discrete=TRUE,
+                                                      nthreads=10, cluster=10, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_wels_night_gamma_20k_high_main, plot=TRUE)
+
+m1_wels_night_gamma_20k_high_main <- bam(det_depth ~ s(seasonal_depth, k=20, bs="cr") +
+                                                     s(amplitude, k=20, bs="cr") +
+                                                     s(mean_gradient, k=20, bs="cr") +
+                                                     s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                                                     s(amplitude, fishid, bs="fs", k=10, m=1) +
+                                                     s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                                                     s(dets_ts, k=20, bs="cr") +
+                                                     s(fishid, dets_ts, bs="fs", k=10, m=1),
+                                                     data=data_wels_night,
+                                                     family=Gamma(link = "log"), discrete=TRUE,
+                                                     nthreads=10, cluster=10, gc.level=0,
+                                                     AR.start=startindex, rho=rho_start_value)
+```
+
+Re-fit the model with fixed degreees of freedom
+
+``` r
+rho_start_value <- start_value_rho(m1s_wels_night_gamma_20k_high_main, plot = TRUE)
+
+f.df <- round(summary(m1_wels_night_gamma_20k_high_main)$edf)+1 # get edf per smooth
+f.df <- pmax(f.df,3) # minimum basis dimension is 3
+
+m1_wels_night_gamma_20k_high_main_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                                           s(amplitude, k=f.df[2], fx=TRUE)+
+                                                           s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                                           s(seasonal_depth, fishid, bs="fs", k=f.df[4], m=1) +
+                                                           s(amplitude, fishid, bs="fs", k=f.df[5], m=1) +
+                                                           s(mean_gradient, fishid, bs="fs", k=f.df[6], m=1) +
+                                                           s(dets_ts, k=f.df[7], fx=TRUE)+
+                                                           s(fishid, dets_ts, bs="fs", k=f.df[8], m=1),
+                                                           data=data_wels_night,
+                                                           family=Gamma(link = "log"), discrete=TRUE,
+                                                           nthreads=10, cluster=10, gc.level=0,
+                                                           AR.start=startindex, rho =rho_start_value)
+```
+
+# Tench
+
+## Tench-Day
+
+Increasing the k-value from k10 models to k100 models increased <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> but the residual QQ plots and the edf/k´ ratio indicated bad residual patterns in most smooth terms, as denoted by a higher AIC value.<br />
+Rather, computing the model with an alternative scaled T-distribution (`"scat"`) with cubic splines (`"cr"`) for the _random factor-smoother interactions_ overall improved the model fit based on the residual patterns and AIC values. In addition, the scat model was also selected in the  Chi-square tests.<br />
+On the other hand, the preference for cubic splines in the random smooth terms could indicate that the inter-individual variation follows cyclic patterns across the range of values of the covariates.<br />
+Taking the base model with k=10 and increasing to k=20 appeared to slightly improve the model fit based on the lower AIC, higher <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> and k-index values. However, the Chi-square test always selected the k10 model when compared to k20 models with equal or mixed k-values (higher or lower for the random terms), hence the former was retained.<br />
+The re-fitted k10 scat model with fixed df was preferred to either penalized k50 and k100 models, showing better residuals patterns and edf/k´ ratios for all smooth terms.<br />
+
+``` r
+AIC_table <- AIC(m1_tench_day_10k,m1_tench_day_scat,m1_tench_day_fs_cr,m1_tench_day,m1_tench_day_fs_cr_scat)%>%
+             rownames_to_column(var= "Model")%>%
+             mutate(data_source = rep(c("data_wels_day"), each=1))%>%
+             group_by(data_source)%>%
+             mutate(deltaAIC = AIC - min(AIC))%>%
+             ungroup()%>%
+             dplyr::select(-data_source)%>%
+             mutate_at(.vars = vars(df,AIC, deltaAIC),
+                       .funs = funs(round,.args = list(digits=0)))
+
+kable(AIC_table)
+```
+|Model                   |  df|     AIC| deltaAIC|
+|:-----------------------|---:|-------:|--------:|
+|m1_tench_day_10k        | 406| 1059123|     9881|
+|m1_tench_day_scat       | 416| 1051297|     2055|
+|m1_tench_day_fs_cr      | 406| 1059308|    10066|
+|m1_tench_day            | 410| 1059108|     9865|
+|m1_tench_day_fs_cr_scat | 408| 1049242|        0|
+
+``` r
+m1s_tench_day_fs_cr_scat <- bam(det_depth ~ s(seasonal_depth, k=10) +
+                                            s(amplitude, k=10) +
+                                            s(mean_gradient, k=10) +
+                                            s(seasonal_depth, fishid, bs="fs", xt="cr", k=10, m=1) +
+                                            s(amplitude, fishid, bs="fs", xt="cr", k=10, m=1) +
+                                            s(mean_gradient, fishid, bs="fs", xt="cr", k=10, m=1) +
+                                            s(dets_ts, k=10) +
+                                            s(fishid, dets_ts, bs="fs", xt="cr", k=10, m=1),
+                                            data=data_tench_day,
+                                            family="scat", discrete=TRUE,
+                                            nthreads=10, cluster=10, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_tench_day_fs_cr_scat, plot=TRUE)
+
+m1_tench_day_fs_cr_scat <- bam(det_depth ~ s(seasonal_depth, k=10) +
+                                           s(amplitude, k=10) +
+                                           s(mean_gradient, k=10) +
+                                           s(seasonal_depth, fishid, bs="fs", xt="cr", k=10, m=1) +
+                                           s(amplitude, fishid, bs="fs", xt="cr", k=10, m=1) +
+                                           s(mean_gradient, fishid, bs="fs", xt="cr", k=10, m=1) +
+                                           s(dets_ts, k=10) +
+                                           s(fishid, dets_ts, bs="fs", xt="cr", k=10, m=1),
+                                           data=data_tench_day,
+                                           family="scat", discrete=TRUE,
+                                           nthreads=10, cluster=10, gc.level=0,
+                                           AR.start=startindex, rho=rho_start_value)
+```
+
+Re-fit the model with fixed degreees of freedom
+
+``` r
+rho_start_value <- start_value_rho(m1s_tench_day_fs_cr_scat, plot=TRUE)
+
+f.df <- round(summary(m1_tench_day_fs_cr_scat)$edf)+1 # get edf per smooth
+f.df <- pmax(f.df,3)                                  # minimum basis dimension is 3
+
+m1_tench_day_fs_cr_scat_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                                 s(amplitude, k=f.df[2], fx=TRUE)+
+                                                 s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                                 s(seasonal_depth, fishid, bs="fs", k=f.df[4], xt="cr", m=1) +
+                                                 s(amplitude, fishid, bs="fs", k=f.df[5], xt="cr", m=1) +
+                                                 s(mean_gradient, fishid, bs="fs", k=f.df[6], xt="cr", m=1) +
+                                                 s(dets_ts, k=f.df[7], fx=TRUE)+
+                                                 s(fishid, dets_ts, bs="fs", k=f.df[8], xt="cr", m=1),
+                                                 data=data_tench_day,
+                                                 family="scat", discrete=TRUE,
+                                                 nthreads=10, cluster=10, gc.level=0,
+                                                 AR.start=startindex, rho=rho_start_value)
+```
+
+
+## Tench-Night
+
+Model selection based on knots shifting, AIC and Chi-square test shows that the default k10 model is the best model. Re-fitting k20, k50 and k100 models with unpenalized terms is only possible if _factor-smooth interaction_ terms are not involved, evidencing the default model with lower k is more consistent regarding the estimated edf and p-values.<br />
+
+``` r
+AIC_table <- AIC(m1_tench_night_gamma_20k_high_global,m1_tench_night_gamma_20k_high_random,m1_tench_night_gamma_20k,m1_tench_night_gamma_50k_high_random,m1_tench_night_gamma_50k_high_global,
+                 m1_tench_night_gamma_100k_high_random,m1_tench_night_gamma_100k_high_global,m1_tench_night_gamma_100k,m1_tench_night_gamma_50k,m1_tench_night_gamma_10k,m1_tench_night_gamma_10k_fs_cr)%>%
+                 rownames_to_column(var= "Model")%>%
+                 mutate(data_source = rep(c("data_tench_night"), each=1))%>%
+                 group_by(data_source)%>%
+                 mutate(deltaAIC = AIC - min(AIC))%>%
+                 ungroup()%>%
+                 dplyr::select(-data_source)%>%
+                 mutate_at(.vars = vars(df,AIC, deltaAIC),
+                           .funs = funs(round,.args = list(digits=0)))
+
+kable(AIC_table)
+```
+
+|Model                                 |   df|    AIC| deltaAIC|
+|:-------------------------------------|----:|------:|--------:|
+|m1_tench_night_gamma_10k              |  441| 302121|        0|
+|m1_tench_night_gamma_10k_fs_cr        | 407|  308486|     6366|
+|m1_tench_night_gamma_20k_high_main    |  448| 304677|     2556|
+|m1_tench_night_gamma_20k_high_random  |  754| 311882|     9762|
+|m1_tench_night_gamma_20k              |  767| 315813|    13692|
+|m1_tench_night_gamma_50k              | 1598| 319621|    17500|
+|m1_tench_night_gamma_50k_high_random  | 1579| 314057|    11937|
+|m1_tench_night_gamma_50k_high_main    |  824| 315181|    13060|
+|m1_tench_night_gamma_100k             | 2617| 314945|    12825|
+|m1_tench_night_gamma_100k_high_random | 2556| 306562|     4442|
+|m1_tench_night_gamma_100k_high_main   |  920| 307955|     5835|
+
+
+``` r
+m1s_tench_night_gamma_10k <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                             s(amplitude, bs="cr", k=10) +
+                                             s(mean_gradient, bs="cr", k=10) +
+                                             s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                                             s(amplitude, fishid, bs="fs", k=10, m=1) +
+                                             s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                                             s(dets_ts, bs="cr", k=10) +
+                                             s(fishid, dets_ts, bs="fs", k=10, m=1),
+                                             data=data_tench_night,
+                                             family=Gamma(link = "log"), discrete=TRUE,
+                                             nthreads=10, cluster=10, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_tench_night_gamma_10k, plot=TRUE)
+
+m1_tench_night_gamma_10k <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                            s(amplitude, bs="cr", k=10) +
+                                            s(mean_gradient,  bs="cr", k=10) +
+                                            s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                                            s(amplitude, fishid, bs="fs", k=10, m=1) +
+                                            s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                                            s(dets_ts, bs="cr", k=10) +
+                                            s(fishid, dets_ts, bs="fs", k=10, m=1),
+                                            data=data_tench_night,
+                                            family=Gamma(link = "log"), discrete=TRUE,
+                                            nthreads=10, cluster=10, gc.level=0,
+                                            AR.start=startindex, rho=rho_start_value)
+```
+
+Re-fit the model with fixed degreees of freedom
+
+``` r
+rho_start_value <- start_value_rho(m1s_tench_night_gamma_10k, plot=TRUE)
+
+f.df <- round(summary(m1_tench_night_gamma_10k)$edf)+1  # get edf per smooth
+f.df <- pmax(f.df,3)                                    # minimum basis dimension is 3
+
+m1_tench_night_gamma_10k_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                                  s(amplitude, k=f.df[2], fx=TRUE) +
+                                                  s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                                  s(seasonal_depth, fishid, bs="fs", k=f.df[4], m=1) +
+                                                  s(amplitude, fishid, bs="fs", k=f.df[5], m=1) +
+                                                  s(mean_gradient, fishid, bs="fs", k=f.df[6], m=1) +
+                                                  s(dets_ts, k=f.df[7], fx=TRUE) +
+                                                  s(fishid, dets_ts, bs="fs", k=f.df[8], m=1),
+                                                  data=data_tench_night,
+                                                  family=Gamma(link = "log"), discrete=TRUE,
+                                                  nthreads=10, cluster=10, gc.level=0,
+                                                  AR.start=startindex, rho=rho_start_value)
+```
+
+# Rudd
+
+## Rudd-Day
+
+While k20 models, with either default or mixed k-values (higher for the random terms) are equally plausible based on AIC (deltaAIC = 1), the non-mixed k20 model is preferred using Chi-square test. However, after re-fitting models with fixed df, the mixed k20 model is selected by AIC and Chi-square test, even though both have very similar values of <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a>.<br />
+The selected mixed k20 model (higher for the random terms) can be re-fitted using linear parametric terms for _seasonal depth_ and _mean gradient_ (edf <a href="https://www.codecogs.com/eqnedit.php?latex=\approx" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\approx" title="\approx" /></a> 1; note the linearity of both terms in the plots) but the selection based on AIC shows that keeping the smooth terms is preferred (deltaAIC = 58).<br />
+On the other hand, a mixed k100 model (higher for the random terms) has a <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> value slightly lower than for fixed k20 models and cannot be unpenalized as  denoted by the lower proportion of deviance explained.<br />
+
+``` r
+AIC_table <- AIC(m1_rudd_day_20k_high_global,m1_rudd_day_20k_high_random,m1_rudd_day_20k,m1_rudd_day_10k)%>%
+             rownames_to_column(var= "Model")%>%
+             mutate(data_source = rep(c("data_rudd_day"), each=1))%>%
+             group_by(data_source)%>%
+             mutate(deltaAIC = AIC - min(AIC))%>%
+             ungroup()%>%
+             dplyr::select(-data_source)%>%
+             mutate_at(.vars = vars(df,AIC, deltaAIC),
+                       .funs = funs(round,.args = list(digits=0)))
+
+kable(AIC_table)
+```
+|Model                       |  df|    AIC| deltaAIC|
+|:---------------------------|---:|------:|--------:|
+|m1_rudd_day_20k_high_global | 327| 218026|     1375|
+|m1_rudd_day_20k_high_random | 546| 216652|        1|
+|m1_rudd_day_20k             | 551| 216651|        0|
+|m1_rudd_day_10k             | 331| 217820|     1169|
+
+
+``` r
+AIC_table <- AIC(m1_rudd_day_20k_high_random,m1_rudd_day_20k,m1_rudd_day_20k_final,m1_rudd_day_20k_high_random_final)%>%
+             rownames_to_column(var= "Model")%>%
+             mutate(data_source = rep(c("data_rudd_day"), each=1))%>%
+             group_by(data_source)%>%
+             mutate(deltaAIC = AIC - min(AIC))%>%
+             ungroup()%>%
+             dplyr::select(-data_source)%>%
+             mutate_at(.vars = vars(df,AIC, deltaAIC),
+                       .funs = funs(round,.args = list(digits=0)))
+
+kable(AIC_table)
+```
+|Model                             |   df|    AIC| deltaAIC|
+|:---------------------------------|----:|------:|--------:|
+|m1_rudd_day_20k_high_random       |  546| 216652|    14937|
+|m1_rudd_day_20k                   |  551| 216651|    14935|
+|m1_rudd_day_20k_final             | 2237| 202020|      305|
+|m1_rudd_day_20k_high_random_final | 2254| 201716|        0|
+
+
+``` r
+m1s_rudd_day_20k_high_random <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                                s(amplitude, bs="cr", k=10) +
+                                                s(mean_gradient,  bs="cr", k=10) +
+                                                s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                                s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                                s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                                s(dets_ts, bs="cr", k=10) +
+                                                s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                                data=data_rudd_day,
+                                                family="gaussian", discrete=TRUE,
+                                                nthreads=10, cluster=10, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_rudd_day_20k_high_random, plot=TRUE)
+
+m1_rudd_day_20k_high_random <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                                               s(amplitude, bs="cr", k=10) +
+                                               s(mean_gradient,  bs="cr", k=10) +
+                                               s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                               s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                               s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                               s(dets_ts, bs="cr", k=10) +
+                                               s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                               data=data_rudd_day,
+                                               family="gaussian", discrete=TRUE,
+                                               nthreads=10, cluster=10, gc.level=0,
+                                               AR.start=startindex, rho=rho_start_value)
+```
+
+Re-fit the model with fixed degreees of freedom
+
+``` r
+rho_start_value <- start_value_rho(m1s_rudd_day_20k_high_random, plot=TRUE)
+
+f.df <- round(summary(m1_rudd_day_20k_high_random)$edf)+1 # get edf per smooth
+f.df <- pmax(f.df,3)                                      # minimum basis dimension is 3
+
+m1_rudd_day_20k_high_random_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                                     s(amplitude, k=f.df[2], fx=TRUE) +
+                                                     s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                                     s(seasonal_depth, fishid, bs="fs", k=f.df[4], m=1) +
+                                                     s(amplitude, fishid, bs="fs", k=f.df[5], m=1) +
+                                                     s(mean_gradient, fishid, bs="fs", k=f.df[6], m=1) +
+                                                     s(dets_ts, k=f.df[7], fx=TRUE) +
+                                                     s(fishid, dets_ts, bs="fs", k=f.df[8], m=1),
+                                                     data=data_rudd_day,
+                                                     family="gaussian", discrete=TRUE,
+                                                     nthreads=10, cluster=10, gc.level=0,
+                                                     AR.start=startindex, rho=rho_start_value)
+```
+
+## Rudd-Night
+
+The selected k20 model is preferred to models with lower k-values and to models with mixed k-values (either lower or higher for the random terms). Neither the T-distribution resulted in a better fit.<br />
+Although the k100 model has higher <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> than the k20 model, in no case did increasing the k-value improve the edf/k` ratio or the k-index. Along with this, the k100 model could not be re-fitted with fixed degrees of freedom, the significance of the main-effects terms were consistent with the k20 model as well as the general patterns besides the level of wiggliness.<br />
+
+``` r
+m1s_rudd_night_20k <- bam(det_depth ~ s(seasonal_depth, k=20, bs="cr") +
+                                      s(amplitude, k=20, bs="cr") +
+                                      s(mean_gradient, k=20, bs="cr") +
+                                      s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                      s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                      s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                      s(dets_ts, k=20, bs="cr") +
+                                      s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                      data=data_rudd_night,
+                                      family=gaussian(link="log"), discrete=TRUE,
+                                      nthreads=10, cluster=10, gc.level=0)
+
+rho_start_value <- start_value_rho(m1s_rudd_night_20k, plot=TRUE)
+
+m1_rudd_night_20k <- bam(det_depth ~ s(seasonal_depth, k=20, bs="cr") +
+                                     s(amplitude, k=20, bs="cr") +
+                                     s(mean_gradient, k=20, bs="cr") +
+                                     s(seasonal_depth, fishid, bs="fs", k=20, m=1) +
+                                     s(amplitude, fishid, bs="fs", k=20, m=1) +
+                                     s(mean_gradient, fishid, bs="fs", k=20, m=1) +
+                                     s(dets_ts, k=20, bs="cr") +
+                                     s(fishid, dets_ts, bs="fs", k=20, m=1),
+                                     data=data_rudd_night,
+                                     family=gaussian(link="log"), discrete=TRUE,
+                                     nthreads=10, cluster=10, gc.level=0,
+                                     AR.start=startindex, rho=rho_start_value)
+```
+
+Re-fit the model with fixed degreees of freedom
+
+:balance_scale: **Final model**
+``` r
+rho_start_value <- start_value_rho(m1s_rudd_night_20k, plot=TRUE)
+
+f.df <- round(summary(m1_rudd_night_20k)$edf)+1 # get edf per smooth
+f.df <- pmax(f.df,3)                            # minimum basis dimension is 3
+
+m1_rudd_night_20k_final <- bam(det_depth ~ s(seasonal_depth, k=f.df[1], fx=TRUE) +
+                                           s(amplitude, k=f.df[2], fx=TRUE) +
+                                           s(mean_gradient, k=f.df[3], fx=TRUE) +
+                                           s(seasonal_depth, fishid, bs="fs", k=f.df[4], m=1) +
+                                           s(amplitude, fishid, bs="fs", k=f.df[5], m=1) +
+                                           s(mean_gradient, fishid, bs="fs", k=f.df[6], m=1) +
+                                           s(dets_ts, k=f.df[7], fx=TRUE) +
+                                           s(fishid, dets_ts, bs="fs", k=f.df[8], m=1),
+                                           data=data_rudd_night,
+                                           family=gaussian(link="log"), discrete=TRUE,
+                                           nthreads=10, cluster=10, gc.level=0,
+                                           AR.start=startindex, rho=rho_start_value)
+```
+
+# Final models table
+
+
+
+|    <br>                            |           <br><a href="https://www.codecogs.com/eqnedit.php?latex=\mathbf{Pike}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathbf{Pike}" title="\mathbf{Pike}" /></a>           |                                |       <br><a href="https://www.codecogs.com/eqnedit.php?latex=\mathbf{Wels\&space;catfish}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathbf{Wels\&space;catfish}" title="\mathbf{Wels\ catfish}" /></a>       |                                |           <br><a href="https://www.codecogs.com/eqnedit.php?latex=\mathbf{Tench}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathbf{Tench}" title="\mathbf{Tench}" /></a>          |                                |           <br><a href="https://www.codecogs.com/eqnedit.php?latex=\mathbf{Rudd}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathbf{Rudd}" title="\mathbf{Rudd}" /></a>           |                                |
+|------------------------------------|:----------------------------:|:------------------------------:|:----------------------------:|:------------------------------:|:----------------------------:|:------------------------------:|:----------------------------:|:------------------------------:|
+|    <br>                            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Day}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Day}" title="\mathrm{Day}" /></a><br>            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Night}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Night}" title="\mathrm{Night}" /></a><br>            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Day}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Day}" title="\mathrm{Day}" /></a><br>            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Night}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Night}" title="\mathrm{Night}" /></a><br>            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Day}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Day}" title="\mathrm{Day}" /></a><br>            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Night}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Night}" title="\mathrm{Night}" /></a><br>            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Day}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Day}" title="\mathrm{Day}" /></a><br>            |    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathrm{Night}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathrm{Night}" title="\mathrm{Night}" /></a><br>            |
+|    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\large&space;\mathbf{Parametric&space;\&space;coefficients}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\large&space;\mathbf{Parametric&space;\&space;coefficients}" title="\large \mathbf{Parametric \ coefficients}" /></a></a>  |                              |                                |    <br>                      |    <br>                        |    <br>                      |    <br>                        |    <br>                      |    <br>                        |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=\left&space;(&space;Intercept&space;\right&space;)" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\left&space;(&space;Intercept&space;\right&space;)" title="\left ( Intercept \right )" /></a>                 |           <br>5.64           |            <br>4.36            |           <b> <p>1.59**      |           <b> <p>1.64**        |           <br>3.55           |            <br>0.92            |           <br>2.55           |            <br>0.88            |
+|    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathbf{Smooth&space;\&space;terms}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\mathbf{Smooth&space;\&space;terms}" title="\mathbf{Smooth \ terms}" /></a> </td>             |                              |                                |    <br>                      |    <br>                        |    <br>                      |    <br>                        |    <br>                      |    <br>                        |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=\mathit{s}\left&space;(&space;\mathrm{seasonal&space;\&space;depth}&space;\right&space;)" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\mathit{s}\left&space;(&space;\mathrm{seasonal&space;\&space;depth}&space;\right&space;)" title="\mathit{s}\left ( \mathrm{seasonal \ depth} \right )" /></a>           |             <br>2            |              <br>8             |             <br>2            |           <b> <p>17*           |            <br>6             |              <br>8             |             <br>2            |             <br>16             |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=\mathit{s}\left&space;(&space;\mathrm{amplitude}&space;\right&space;)" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\mathit{s}\left&space;(&space;\mathrm{amplitude}&space;\right&space;)" title="\mathit{s}\left ( \mathrm{amplitude} \right )" /></a>                |            <br>2         |             <b> <p>8***        |             <br>2            |             <br>13             |             <br>5            |              <b> <p>5**        |             <br>5            |             <b> <p>16***       |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=\mathit{s}\left&space;(&space;\mathrm{mean&space;\&space;gradient}&space;\right&space;)" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\mathit{s}\left&space;(&space;\mathrm{mean&space;\&space;gradient}&space;\right&space;)" title="\mathit{s}\left ( \mathrm{mean \ gradient} \right )" /></a>            |             <br>2            |              <br>3             |           <b> <p>4***        |              <br>2             |             <b> <p>6*        |            <b> <p>6***         |             <br>2            |              <br>9             |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=s\left(&space;\mathrm{time}&space;\right&space;)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?s\left(&space;\mathrm{time}&space;\right&space;)" title="s\left( \mathrm{time} \right )" /></a>                     |             <br>2            |              <br>8             |             <br>2            |             <br>17             |            <br>9             |              <br>9             |             <br>7            |             <br>18             |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=s\left(&space;\mathrm{seasonal\&space;depth}&space;\right&space;)_{Fish\&space;ID}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?s\left(&space;\mathrm{seasonal\&space;depth}&space;\right&space;)_{Fish\&space;ID}" title="s\left( \mathrm{seasonal\ depth} \right )_{Fish\ ID}" /></a>    |            <b> <p>904.9***   |            <b> <p>709***       |          <b> <p>572.3***     |     <b> <p>736.2***            |    <b> <p>766.54***          |     <b> <p>629.4***            |    <b> <p>587.34***          |     <b> <p>636.2***            |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=s\left(&space;\mathrm{amplitude}&space;\right&space;)_{Fish\&space;ID}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?s\left(&space;\mathrm{amplitude}&space;\right&space;)_{Fish\&space;ID}" title="s\left( \mathrm{amplitude} \right )_{Fish\ ID}" /></a>         |            <b> <p>378.1***   |           <b> <p>454.7***      |          <b> <p>270.68***    |           <b> <p>297.5***      |         <b> <p>110.64***     |            <b> <p>448***       |          <b> <p>226.29***    |           <b> <p>856.2***      |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=s\left(&space;\mathrm{mean\&space;gradient}&space;\right&space;)_{Fish\&space;ID}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?s\left(&space;\mathrm{mean\&space;gradient}&space;\right&space;)_{Fish\&space;ID}" title="s\left( \mathrm{mean\ gradient} \right )_{Fish\ ID}" /></a>     |            <b> <p>139.1***   |           <b> <p>276.7***      |          <b> <p>63.25***     |           <b> <p>209.4***      |         <b> <p>84.55***      |           <b> <p>129.5***      |          <b> <p>77.39***     |           <b> <p>347.1***      |
+|    <br><a href="https://www.codecogs.com/eqnedit.php?latex=s\left(&space;\mathrm{time}&space;\right&space;)_{Fish\&space;ID}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?s\left(&space;\mathrm{time}&space;\right&space;)_{Fish\&space;ID}" title="s\left( \mathrm{time} \right )_{Fish\ ID}" /></a>              |           <b> <p>1787***   |           <b> <p>1012.6***     |       <b> <p>2871.52***      |          <b> <p>1369.6***      |           <b> <p>1464.94***  |           <b> <p>1139.9***     |         <b> <p>1340.94***    |           <b> <p>1300.8***     |
+|    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{N}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\boldsymbol{N}" title="\boldsymbol{N}" /></a>                        |           <br>12             |            <br>12              |           <br>15             |            <br>15              |           <br>19             |             <br>19             |           <br>15             |            <br>15              |
+|    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathbf{Adjusted\&space;\boldsymbol{R^{2}}}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathbf{Adjusted\&space;\boldsymbol{R^{2}}}" title="\mathbf{Adjusted\ \boldsymbol{R^{2}}}" /></a>              |           <br>0.92           |            <br>0.85            |           <br>0.78           |            <br>0.76            |           <br>0.63           |             <br>0.6            |           <br>0.78           |            <br>0.63           |
+|    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{AIC}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\boldsymbol{AIC}" title="\boldsymbol{AIC}" /></a>                      |           <br>204,822           |           <br>53,694           |          <br>659,663         |           <br>330,326          |          <br>864,749        |           <br>188,051          |          <br>201,716         |            <br>1710            |
+|    <b> <p><a href="https://www.codecogs.com/eqnedit.php?latex=\mathbf{Deviance\&space;explained}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathbf{Deviance\&space;explained}" title="\mathbf{Deviance\ explained}" /></a>       |          <br>91.7%          |           <br>75.40%           |          <br>78.40%          |           <br>68.10%           |          <br>55.60%          |           <br>59.30%           |            <br>78%           |           <br>62.80%           |
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\small&space;\mathrm{*&space;\mathit{p}<0.05,&space;**&space;\mathit{p}<0.01,&space;***&space;\mathit{p}<0.001}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\small&space;\mathrm{*&space;\mathit{p}<0.05,&space;**&space;\mathit{p}<0.01,&space;***&space;\mathit{p}<0.001}" title="\small \mathrm{* \mathit{p}<0.05, ** \mathit{p}<0.01, *** \mathit{p}<0.001}" /></a>
+
+# Alternative model structures
+
+### Model 2: Group-level smoothers with same wiggliness (Random factor-smoother interaction)
+
+Depth is modelled as a function of four smoother terms:
+- 0 *main-effects smoothers* (not valid if we want to estimate average sesonal depth, mean gradient or amplitude).
+- 0 group-specific *random-effect* smoothers (i.e., without fish-specific intercepts).
+- 4 group-level *random factor-smoother interactions* (i.e., for all _Fish ID_ with `bs="fs"`):
+  - A penalty to shrink these smoothers toward zero.
+  - A common smoothing parameter for all _Fish ID_ smoothers with same wiggliness (<a href="https://www.codecogs.com/eqnedit.php?latex=\simeq" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\simeq" title="\simeq" /></a> functional responses for all _Fish ID_)
+  - Individual shapes of the smooth terms not related.
+``` r
+m2 <- bam(det_depth ~ s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                      s(amplitude, fishid, bs="fs", k=10, m=1) +
+                      s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                      s(dets_ts, fishid, bs="fs", k=10, m=1),
+                      data=data_wels_day, method="REML", family="gaussian",
+                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                      AR.start=startindex, rho=rho_start_value)
+```
+
+### Model 3: Main-effects smoothers + Group-level smoothers with different wiggliness
+
+Now, using the argument `bs="re"`, the random effects are not being smoothed but just _"exploiting the link between smooths and random effects to treat random effects as smooths"_ (see `?mgcv::smooth.construct.re.smooth.spec`). Thus, for each level factor in _fishid_, an independent normal prior with common variance is assumed.<br />
+Depth is modelled as a function of nine smoother terms:
+- 4 *main-effects* smoothers (with cubic splines) for all observations of each covariate (individual effects with individual penalty terms).
+- 1 group-specific *random-effects* smoother (i.e., fish-specific intercepts with `bs="re"`).
+- 4 group-level *factor-smoothers* (i.e., _Fish ID_-specific with `by=fishid`):
+  - A penalty to shrink these smoothers toward zero.
+  - A different smoothing parameter for each _Fish ID_ smoother, each with different wiggliness (<a href="https://www.codecogs.com/eqnedit.php?latex=\neq" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\neq" title="\neq" /></a> functional responses for each _Fish ID_)
+  - Different shapes of the smooth terms (~inter-individual variation in responses, t2).
+``` r
+m3 <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+		                  s(amplitude, bs="cr", k=10) +
+                      s(mean_gradient, bs="cr", k=10) +
+                      s(dets_ts, bs="cr", k=10) +
+                      s(seasonal_depth, by=fishid, bs="cr", k=10, m=1) +
+                      s(amplitude, by=fishid, bs="cr", k=10, m=1) +
+                      s(mean_gradient, by=fishid, bs="cr", k=10, m=1) +
+                      s(dets_ts, by=fishid, bs="cr", k=10, m=1) +
+                      s(fishid, bs="re", k=14),
+                      data=data_wels_day, method="REML", family="gaussian",
+                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                      AR.start=startindex, rho=rho_start_value)
+```
+
+### Model 4: Group-level smoothers with different wiggliness
+
+Depth is modelled as a function of five smoother terms:
+- 0 *main-effects smoothers* (not valid if we want to estimate average sesonal depth, mean gradient or amplitude).
+- 1 group-specific *random-effects* smoother (i.e., fish-specific intercepts with `bs="re"`).
+- 4 group-level *factor-smoothers* (i.e., _Fish ID_-specific with `by=fishid`):
+  - A penalty to shrink these smoothers toward zero.
+  - A different smoothing parameter for each _Fish ID_ smoother, each with different wiggliness (<a href="https://www.codecogs.com/eqnedit.php?latex=\neq" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\neq" title="\neq" /></a> functional responses for each _Fish ID_)
+  - Different shapes of the smooth terms (~inter-individual variation in responses, t2).
+``` r
+m4 <- bam(det_depth ~ s(seasonal_depth, by=fishid, bs="cr", k=10, m=1) +
+                      s(amplitude, by=fishid, bs="cr", k=10, m=1) +
+                      s(mean_gradient, by=fishid, bs="cr", k=10, m=1) +
+                      s(dets_ts, by=fishid, bs="cr", k=10, m=1) +
+                      s(fishid, bs="re", k=14),
+                      data=data_wels_day, method="REML", family="gaussian",
+                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                      AR.start=startindex, rho=rho_start_value)
+```
+:information_source: _Note that _s(fishid, bs="re")_ is included in models 3 and 4 for an intercept as the (_X_ `by` _fishid_) smoother does not include one._ In both cases, it would make more sense to include the grouping variable _species_ instead of _fishid_.
+
+### Model 5: Main-effects smoothers + Random-effects smoothers (Intercept)
+
+Depth is modelled as a function of five smoother terms:
+- 4 *main-effects* smoothers (cubic splines) for all observations of each covariate.
+- 1 group-specific *random-effects* smoother (i.e., fish-specific intercepts with `bs="re"`).
+``` r
+m5 <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+		                  s(amplitude, bs="cr", k=10) +
+                      s(mean_gradient, bs="cr", k=10) +
+                      s(dets_ts, bs="cr", k=10) +
+                      s(fishid, bs="re", k=14),
+                      data=data_wels_day, method="REML", family="gaussian",
+                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                      AR.start=startindex, rho=rho_start_value)
+```
+
+### Model 6: Main-effects smoothers + Random-effects smoothers (Intercept + slope)
+
+Depth is modelled as a function of six smoother terms:
+- 4 *main-effects* smoothers (cubic splines) for all observations of each covariate.
+- 1 group-specific *random-effects* smoother (i.e., fish-specific intercepts with `bs="re"`).
+- 3 group-specific *random-effects* smoothers (i.e., fish-specific slopes with `bs="re"`).
+``` r
+m6 <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+		                  s(amplitude, bs="cr", k=10) +
+                      s(mean_gradient, bs="cr", k=10) +
+                      s(dets_ts, bs="cr", k=10) +
+                      s(seasonal_depth, fishid, bs="re", k=14) +
+                      s(amplitude, fishid, bs="re", k=14) +
+                      s(mean_gradient, fishid, bs="re", k=14) +
+                      s(fishid, dets_ts, bs="re", k=14) +
+                      s(fishid, bs="re", k=14),
+                      data=data_wels_day, method="REML", family="gaussian",
+                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                      AR.start=startindex, rho=rho_start_value)
+```
+
+### Models with sesonal dynamics
+
+Consider any of the above models for including a seasonal components. For example, for the selected **Model 1**:
+- Include cyclic cubic splines (`bs="cc"`) for the daily dynamics (day-to-day effects cyclic variation in depth).
+- Specify start and end points of cycles (1 day = 1440 minutes).
+
+Depth is modelled as a function of nine smoother terms:
+- 4 *main-effects* smoothers for all observations of each covariate (individual effects have a common penalty term):
+  - With cubic splines (3).
+  - With  cyclic cubic spline (1).
+- 1 group-specific *random-effects* smoother (i.e., fish-specific slopes with `bs="re"`) for daily dynamics.
+- 4 group-level *random factor-smoother interactions* (i.e., for all _Fish ID_ with `bs="fs"`):
+  - A penalty to shrink these smoothers toward zero.
+  - A common smoothing parameter for all _Fish ID_ smoothers with same wiggliness (<a href="https://www.codecogs.com/eqnedit.php?latex=\simeq" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\simeq" title="\simeq" /></a> functional responses for all _Fish ID_)
+  - Different shapes of the smooth terms (~inter-individual variation in responses, t2).
+  - One incorporating sesonal dynamics:
+    - With the `knots` argument for start and end cycles.
+    - With cyclic cubic spline (1).
+``` r
+m1_seasonal <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+                               s(amplitude, bs="cr", k=10) +
+                               s(mean_gradient, bs="cr", k=10) +
+                               s(dets_ts, k=10, bs='cc') +
+                               s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
+                               s(amplitude, fishid, bs="fs", k=10, m=1) +
+                               s(mean_gradient, fishid, bs="fs", k=10, m=1) +
+                               s(fishid, day, bs="re") +
+                               s(dets_ts, fishid, k=10, bs="fs", xt=list(bs="cc")), knots=list(day=c(0,1440)),
+                               data=data_wels_day, method="REML", family="gaussian",
+                               discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                               AR.start=startindex, rho=rho_start_value)
+```
+
+Based on model 4:
+``` r
+m4_seasonal <- bam(det_depth ~ s(seasonal_depth, by=fishid, k=10, bs="cc") +
+                               s(amplitude, by=fishid, k=10, bs="cc") +
+                               s(mean_gradient, by=fishid, k=10, bs="cc") +
+                               s(dets_ts, by=fishid, k=10, bs="cc") +
+                               s(fishid, bs="re") +
+                               s(fishid, day, bs="re") + knots=list(day=c(0,1440)),
+                               data=data_wels_day, method="REML", family="gaussian",
+                               discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                               AR.start=startindex, rho=rho_start_value)
+```
+
+# Issues and further improvements
+
+For each subset of data, shifting in k-value from 10 to 20 to 50 to 100 increased <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> but as the number of basis functions increased, models were less likely to be re-fitted with fixed degrees of freedom at k=50-100. Therefore, for each specific data set we kept the model with the upper limit of flexibility allowed provided a balance between a reasonable k-value, AIC, <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> and Chi-square test results. In most cases, random smooths with ten basis functions (k=10) were not sufficient for modelling some of the data, otherwise setting k = 20 provided more reliable estimates.<br />
+In general, the results of modelling using different basis functions evidence that the inclusion of individual random smooth terms for each covariate makes the model appear to never get an optimal fit as more basis dimensions are needed for the higher order of the random terms. In other words, increasing k is fine for estimating the main smooth effects but for the random smooth effects, the higher variability would be better modelled with regularly sparsed chunks of data. This, in part, is atributible to the fact that without a seasonal component complexity of the already complex time-series trend increases thus complicating it to be approximated by a relatively small number of basis functions.<br />
+One solution would be increasing the k-value to theoretically higher k-values (for all or only the random terms) but this confronts two problems, either the model can`t be fitted with so many basis functions or, if fitted, it´ll never be re-fitted with un-penalized terms. In both cases, what we see are patterns of excessive wiggliness in the random terms. This also tends to change the estimation of the main-effects terms such as p-values can shift from significance to non-significance and viceversa.<br />
+I highlight this and some other issues with possible solutions that could be further worked out in a future revision.
+
+### Lack of continutiy in the data
+
+- Each subset consists of discontinuous data separated into day-night. For a specific day, this causes an individual`s measurements to go from day to day without the intermediate night values.
+- A way of solving this would be including the factor variable _diel period_ in the models (for day-night differences), for example using tensor product interactions (`te()`) and including _diel_period_ using the argument `"by"`.
+- Discontinuity is also due to missing data points within diel periods. This could be solved by computing the missing cases before fitting the model.
+- Examples of model formulas including _diel_period_:
+
+``` r
+m4_seasonal_diel <- bam(det_depth ~ diel_period +
+                                    te(day, seasonal_depth, by=diel_period, bs=c("cc","tp"), k=c(10,10), m=1) +
+                                    te(day, amplitude, by=diel_period, bs=c("cc","tp"), k=c(10,10), m=1) +
+                                    te(day, mean_gradient, by=diel_period, bs=c("cc","tp"), k=c(10,10), m=1) +
+                                    te(day, dets_ts, by=diel_period, bs=c("cc","tp"), k=c(10,10), m=1) +
+                                    s(fishid, bs="re") +
+                                    s(fishid, day, bs="re") + knots=list(day=c(0,1440)),
+                                    data=data_wels, method="REML", family="gaussian",
+                                    discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                                    AR.start=startindex, rho=rho_start_value)
+```
+:information_source: _Note that I use here `"tp"` splines for the main-effects smoothers instead of `"cr"` and cyclic cubic splines `"cc"` for the random smoothers._
+
+
+### Lack of sesonality
+
+- Even though accounting for sesonality is out of the scope of this study, including a seasonal component such as shown in **Models with sesonal dynamics** above would help improve the fitting and predictability of the model.
+- Could this be fixed using adaptive splines (`bs="ad"`)?
+  - Uses a weighted penalty matrix with the weights varying smoothly with the covariate to accommodate the varying wiggliness.
+  - Uses more smoothness parameters (`m=5` by default) but assumes the same degree of smoothness over the range of the covariate.
+
+### Including logger sites for predicting changes in thermocline?
+
+- Similarly as above, including the two logger sites with the argument `"by"` can be used to model variability between each section of the lake (eastern-western).
+- If we model depth as a function of time and logger site we may include an interaction using a smooth _tensor product interaction_ between logger site and time. Modifying **Model 3** as follows:
+
+``` r
+m3_logger_site <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
+		                              s(amplitude, bs="cr", k=10) +
+                                  s(mean_gradient, bs="cr", k=10) +
+                                  s(dets_ts, bs="cr", k=10) +
+                                  s(seasonal_depth, by=logger_site, bs="cr", k=10, m=1) +
+                                  s(amplitude, by=logger_site, bs="cr", k=10, m=1) +
+                                  s(mean_gradient, by=logger_site, bs="cr", k=10, m=1) +
+                                  s(dets_ts, by=logger_site, bs="cr", k=10, m=1) +
+                                  s(fishid, bs="re", k=14),
+                                  data=data_wels_day, method="REML", family="gaussian",
+                                  discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
+                                  AR.start=startindex, rho=rho_start_value)
+```
+
+### Variable selection and parameters estimation of the main and random smooth effects
+
+- All models are fitted to the same global formula (**Model 1**) so there`s not possibility for variable selection. This can be an issue when non-significant main-effects smoothers tend to bias estimates and p-values of other smooth terms.
+- Variable selection can be done using more reliable p-values estimation of the main smooth effects by using the argument `select=TRUE` that penalizes all model terms to zero effect. Even if we don`t use this argument, the fitted models can have potentially higher deviance from including non-significant terms.
+- Rather using `bs="fs"` we could use the multivariate equivalent of the _factor-smoother interaction_ `t2(full=TRUE)` that appears to estimate the _main-effects smoothers_ more accurately when _group-level smoothers_ are present.
+- The problem with the former two approaches is that the computational cost is very high.
+
+
+# References
+
+- Marra, G., & Wood, S. N. (2011). Practical variable selection for generalized additive models. Computational Statistics & Data Analysis. 2011;55(7):2372–2387. https://doi.org/10.1016/j.csda.2011.02.004
+- Pedersen, E. J., Miller, D. L., Simpson, G. L., & Ross, N. (2019). Hierarchical generalized additive models in ecology: an introduction with mgcv. PeerJ, 7, e6876. https://doi.org/10.7717/peerj.6876
+- van Rij, J., Wieling, M., Baayen, R., van Rijn, H. (2017). itsadug: Interpreting Time Series and Autocorrelated Data Using GAMMs. R package version 2.3
+- Wood, S. N. (2001). mgcv: GAMs and Generalized Ridge Regression for R. R News 1(2):20-25
+- Wood, S. N. (2017). Generalized additive models: an introduction with R. Second Edition. Boco Raton: CRC Press.
+- Wood, S. N., Goude, Y., & Shaw, S. (2015). Generalized additive models for large datasets. Journal of the Royal Statistical Society, Series C 64(1): 139-155. http://dx.doi.org/10.1111/rssc.12068
+- Wood, S. N., Pya, N., & Saefken, B. (2016). Smoothing parameter and model selection for general smooth models. Journal of the American Statistical Association, 111:516, 1548-1563. https://doi.org/10.1080/01621459.2016.1180986
+
