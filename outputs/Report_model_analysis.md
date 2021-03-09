@@ -1,4 +1,3 @@
-<a href="https://www.codecogs.com/eqnedit.php?latex=\mathit{s}\left&space;(&space;\mathrm{mean&space;\&space;gradient}&space;\right&space;)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathit{s}\left&space;(&space;\mathrm{mean&space;\&space;gradient}&space;\right&space;)" title="\mathit{s}\left ( \mathrm{mean \ gradient} \right )" /></a>
 # <a name="headindex">Influence of internal seiche dynamics on vertical distribution of fish
 ## <a name="headindex">Report of model analysis
 ---
