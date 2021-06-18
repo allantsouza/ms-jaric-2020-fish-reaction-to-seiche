@@ -616,10 +616,9 @@ The final model formula can be expressed as follows:
 where:
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" title="\boldsymbol{E\left ( y_{i} \right )}" /></a>
-is the expected value of depth for a fish <a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a>
-at time <a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a>
+is the expected value of depth for a  fish id <a href="https://www.codecogs.com/eqnedit.php?latex=\gamma_{1i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\gamma_{1i}" title="\gamma_{1i}" /></a> at time <a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a>
 
-<a href="https://www.codecogs.com/eqnedit.php?latex=\beta_{0}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\beta_{0}" title="\beta_{0}" /></a> is the is the average value of the response (model intercept).
+<a href="https://www.codecogs.com/eqnedit.php?latex=\beta_{0}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\beta_{0}" title="\beta_{0}" /></a> is the population mean depth for a given species and diel period.
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=X_{1i},&space;X_{2i},&space;X_{3i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?X_{1i},&space;X_{2i},&space;X_{3i}" title="X_{1i}, X_{2i}, X_{3i}" /></a> are main-effects of the continuous covariates (i.e., seasonal depth, mean gradient and amplitude).
 
@@ -1272,3 +1271,4 @@ dev.off()
 ![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
 
 **Figure Z** Partial effects of the smooth functions of the amplitude of seiche on fish vertical movement of northern pike, rudd, tench and wels catfish according to diel periods. The slopes represent average effects for the amplitude of thermocline based on GAMs fit to 5-min average fish position data over a whole time period. Splines for other predictors are omitted.
+
