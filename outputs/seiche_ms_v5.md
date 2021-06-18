@@ -21,7 +21,7 @@
 
 ## [Variance components and Repeatability](#headavars)
 
-## [Table 2](#headatable2)
+## [Tables](#headatables)
 
 ## [Plotting reaction norms to seiche and individual variability](#headaplots)
 
@@ -979,7 +979,7 @@ All_R <- merge(All_R, adj_BRNs_R, by =c("ID"),all=TRUE)
 rownames(All_R) <- names
 ```
 
-## <a name="headatable2"></a>Table 2 [:page_facing_up:](#headindex)
+## <a name="headatables"></a>Tables [:page_facing_up:](#headindex)
 
 |    <br>Predictors                   |    <br>Northern Pike            |                                  |    <br>Wels catfish             |                                  |    <br>Tench                    |                                  |    <br>Rudd                     |                                  |
 |-------------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|
@@ -1000,6 +1000,22 @@ rownames(All_R) <- names
 |    <br>Deviance explained   (%)     |    <br>53.8                     |    <br>56.5                      |    <br>50.4                     |    <br>48.3                      |    <br>38.7                     |    <br>19.1                      |    <br>35                       |    <br>33                        |
 
 **Table 2** Generalized additive mixed models (GAMM) analyzing trends in depth movement of fish according to physical properties of thermocline (seasonal depth, amplitude and mean gradient) and over time. Numbers refer to estimates (parametric coefficients), estimated effective degrees of freedom (EDF) for main-effects smoothers, and variance components (± 95% confidence intervals, CI) for random-effects smoothers where fishID specifies random factor intercepts and random slopes for each predictor variable. Inter-individual variability is modelled with similar functional responses between fish across context-dependent covariates. In all models, s() are smoothing functions of the covariates computed using penalized regression splines. The maximum number of knots (k-value) used for fitting each model was set to 10 for all splines. EDF indicates the degree of complexity (i.e. wiggliness) of the non-linear relationship between a covariate and the dependent variable, depth. Scale parameter (ϕ), the estimated scale parameter used to compute the variance of i.i.d. Gaussian random effects of the penalized coefficients. Adjusted-R2, measures the goodness-of-fit of the model as the proportion of variance explained. Deviance explained, refers to the proportion of null deviance explained by the model. P-values: * p<0.05, ** p<0.01, *** p<0.001.
+
+
+|                       |    <br>R0<br>   <br>(unadj)          |    <br>R<br>   <br>(adj fixed)       |    <br>VfishID                          |    <br>Ve                             |    <br>VfishID(sesonal_depth)          |    <br>VfishID(amplitude)               |    <br>VfishID(mean_gradient)           |    <br>R<br>   <br>(adj BRNs)        |
+|-----------------------|--------------------------------------|--------------------------------------|-----------------------------------------|---------------------------------------|----------------------------------------|-----------------------------------------|-----------------------------------------|--------------------------------------|
+|    <br>Pike-Day       |    <br>0.50<br>   <br>[0.30–0.69]    |    <br>0.50<br>   <br>[0.22–1.15]    |    <br>160.9<br>   <br> [67.4–383.7]    |    <br>3.86<br>   <br> [3.82–3.91]    |    <br>2.20<br>   <br> [0.92–5.24]     |    <br>0.024<br>   <br> [0.018–0.13]    |    <br>0.007<br>   <br> [0.001–0.01]    |    <br>0.98<br>   <br>[0.95–0.99]    |
+|    <br>Pike-Night     |    <br>0.62<br>   <br>[0.41–0.79]    |    <br>0.61<br>   <br>[0.34–1.80]    |    <br>4.95<br>   <br>[2.11–11.65]      |    <br>4.65<br>   <br>[4.60–4.72]     |    <br>2.26<br>   <br>[0.95–5.4]       |    <br>0.024<br>   <br>[0.01–0.06]      |    <br>0.007<br>   <br>[0.003–0.02]     |    <br>0.52<br>   <br>[0.32–0.71]    |
+|    <br>Wels-Day       |    <br>0.31<br>   <br>[0.18–0.49]    |    <br>0.36<br>   <br>[0.14–0.59]    |    <br>0.06<br>   <br> [0.03–0.12]      |    <br>0.09<br>   <br> [0.09–0.10]    |    <br>0.02<br>   <br> [0.011–0.05]    |    <br>0.001<br>   <br>[0.001–0.002]    |    <br>0.001<br>   <br> [0–0.001]       |    <br>0.40<br>   <br>[0.24–0.58]    |
+|    <br>Wels-Night     |    <br>0.32<br>   <br>[0.18–0.49]    |    <br>0.35<br>   <br>[0.13–0.57]    |    <br>0.19<br>   <br>[0.09–0.4]        |    <br>0.32<br>   <br>[0.32–0.33]     |    <br>0.03<br>   <br>[0.014–0.06]     |    <br>0.002<br>   <br>[0.001–0.01]     |    <br>0.001<br>   <br>[0.001–0.003]    |    <br>0.37<br>   <br>[0.22–0.55]    |
+|    <br>Tench-Day      |    <br>0.18<br>   <br>[0.10–0.31]    |    <br>0.16<br>   <br>[0.09–0.28]    |    <br>0.49<br>   <br> [0.245–0.99]     |    <br>2.14<br>   <br>[2.12–2.16]     |    <br>0.28<br>   <br>[0.136–0.59]     |    <br>0.003<br>   <br>[0.001–0.01]     |    <br>0.007<br>   <br>[0.003–0.02]     |    <br>0.19<br>   <br>[0.10–0.32]    |
+|    <br>Tench-Night    |    <br>0.11<br>   <br>[0.06–0.19]    |    <br>0.15<br>   <br>[0.05–0.17]    |    <br>0.06<br>   <br> [0.03–0.14]      |    <br>0.27<br>   <br>[0.27–0.28]     |    <br>0.03<br>   <br>[0.01–0.06]      |    <br>0.01<br>   <br>[0.004–0.03]      |    <br>0.005<br>   <br>[0.002–0.01]     |    <br>0.19<br>   <br>[0.10–0.33]    |
+|    <br>Rudd-Day       |    <br>0.02<br>   <br>[0.01–0.04]    |    <br>0.11<br>   <br>[0.03–0.13]    |    <br>0.11<br>   <br> [0.05–0.26]      |    <br>0.96<br>   <br>[0.95–0.97]     |    <br>0.007<br>   <br>[0.001–0.05]    |    <br>0.002<br>   <br>[0.001–0.005]    |    <br>0.002<br>   <br>[0.001–0.01]     |    <br>0.11<br>   <br>[0.05–0.21]    |
+|    <br>Rudd-Night     |    <br>0.03<br>   <br>[0.02–0.07]    |    <br>0.04<br>   <br>[0.01–0.04]    |    <br>0.07<br>   <br> [0.03–0.16]      |    <br>0.69<br>   <br>[0.68–0.70]     |    <br>0.06<br>   <br>[0.03–0.13]      |    <br>0.001<br>   <br>[0.001–0.003]    |    <br>0.002<br>   <br>[0.001–0.004]    |    <br>0.10<br>   <br>[0.05–0.18]    |
+
+**Table 3** Repeatability in individual behavior across contexts from thermocline –dependent variables. Data show unadjusted and adjusted R values with 95% confidence intervals (CI) computed from GAMs model_fishid, model_fixed, and model_BRNs. Variance components are also shown only for model_BRNs. The variances of the random effects for each covariate are calculated by dividing the estimated scale parameter (ϕ) by the smoothness parameter (λ) from the fitted GAMM. Repeatability was calculated using a non-linear approximation to the definition by Nakagawa and Schielzeth (2010) as the relationship between the inter-individual variance (VfishID), given by the smoothing random intercept s(fishID) (i.e., τ00), and the total phenotypic variance (Vtotal = VfishID + Ve), where Ve is the residual variance of the random effects (or intra-individual variability) and equals to ϕ (see SM for more details on variance components and R estimation).
+
+
 
 ## <a name="headaplots"></a>Plotting reaction norms to seiche and individual variability [:page_facing_up:](#headindex)
 
@@ -1220,6 +1236,4 @@ dev.off()
 ![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
 
 **Fig.Z** Partial effects of the smooth functions of the amplitude of seiche on fish vertical movement of northern pike, rudd, tench and wels catfish according to diel periods. The slopes represent average effects for the amplitude of thermocline based on GAMs fit to 5-min average fish position data over a whole time period. Splines for other predictors are omitted.
-
-
 
