@@ -4,8 +4,6 @@
 
 # [Data](#headdata)
 
-# [Global model formula](#headglobalmodel)
-
 # [Final models ](#headafinalmodels)
 
 [![Image name](/outputs/icons/pike_index_1.png)](#headSpeciesPike)
@@ -210,36 +208,7 @@ data_pike_night = detections %>%
                              mutate(startindex = ifelse(
                                test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
                              mutate(fishid = as_factor(fishid))
-data_wels_day = detections %>%
-                             filter(species == "wels" &
-                                      diel_period == 'day' &
-                                      is_valid_seiche == TRUE) %>%
-                             mutate(startindex = ifelse(
-                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
-                             mutate(fishid = as_factor(fishid))
-
-data_wels_night = detections %>%
-                             filter(species == "wels" &
-                                      diel_period == 'night' &
-                                      is_valid_seiche == TRUE) %>%
-                             mutate(startindex = ifelse(
-                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
-                             mutate(fishid = as_factor(fishid))
-data_tench_day = detections %>%
-                             filter(species == "tench" &
-                                      diel_period == 'day' &
-                                      is_valid_seiche == TRUE) %>%
-                             mutate(startindex = ifelse(
-                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
-                             mutate(fishid = as_factor(fishid))
-
-data_tench_night = detections %>%
-                             filter(species == "tench" &
-                                      diel_period == 'night' &
-                                      is_valid_seiche == TRUE) %>%
-                             mutate(startindex = ifelse(
-                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
-                             mutate(fishid = as_factor(fishid))
+	
 data_rudd_day = detections %>%
                              filter(species == "rudd" &
                                       diel_period == 'day' &
@@ -255,107 +224,139 @@ data_rudd_night = detections %>%
                              mutate(startindex = ifelse(
                                test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
                              mutate(fishid = as_factor(fishid))
+	
+data_tench_day = detections %>%
+                             filter(species == "tench" &
+                                      diel_period == 'day' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
 
+data_tench_night = detections %>%
+                             filter(species == "tench" &
+                                      diel_period == 'night' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+	
+data_wels_day = detections %>%
+                             filter(species == "wels" &
+                                      diel_period == 'day' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
+
+data_wels_night = detections %>%
+                             filter(species == "wels" &
+                                      diel_period == 'night' &
+                                      is_valid_seiche == TRUE) %>%
+                             mutate(startindex = ifelse(
+                               test = row_number(dets_ts) == 1, yes = T, no = F)) %>%
+                             mutate(fishid = as_factor(fishid))
 ```
-
-# <a name="headglobalmodel"></a>Global model formula [:page_facing_up:](#headindex)
-
-The global model formula incorporates an **AR(1)** autoregressive residual term. This is found to be suitable for the different data subsets when compared to others autocorrelation structures. First, we fit the model without AR(1) component in order to estimate the **rho-value** and then re-fit the model with the AR1 structure.<br />
-Included is a squared first derivative penalty term (`m=1`) for the _random factor-smooth interactions_ to correct uncertainty around the mean of the _main-effects_ smoothers (with second derivative penalty, `m=2` by default) to reduce concurvity between both smoothers.<br />
-Adding the argument `discrete=TRUE` substantially reduces computation time by creating bins of discrete data for each variable before fitting the model.<br />
-
-The global model formula can be expressed as follows:
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" title="\boldsymbol{E\left ( y_{i} \right )}= \beta_{0} + f_{1}\left ( X_{1i} \right ) + f_{2}\left ( X_{1i} \right )_{id_{i}} + f_{3}\left ( X_{2i} \right ) + f_{4}\left ( X_{2i} \right )_{id_{i}} + f_{5}\left ( X_{3i} \right ) + f_{6}\left ( X_{3i} \right )_{id_{i}} + f_{7}\left ( t_{i} \right ) + f_{8}\left ( t_{i} \right )_{id_{i}} + \varepsilon _{i}" /></a>
-
-where:
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" title="\boldsymbol{E\left ( y_{i} \right )}" /></a>
-is the expected value of depth for a fish <a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a>
-at time <a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a>
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=\beta_{0}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\beta_{0}" title="\beta_{0}" /></a> is the is the average value of the response (model intercept).
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=X_{1i},&space;X_{2i},&space;X_{3i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?X_{1i},&space;X_{2i},&space;X_{3i}" title="X_{1i}, X_{2i}, X_{3i}" /></a> are main-effects of the continuous covariates (i.e., seasonal depth, mean gradient and amplitude).
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a> is the average time effects trend.
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=f_{1-8}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?f_{1-8}" title="f_{1-8}" /></a> are smoothing functions of the covariates <a href="https://www.codecogs.com/eqnedit.php?latex=X_{1i},&space;X_{2i},&space;X_{3i},&space;t" target="_blank"><img src="https://latex.codecogs.com/svg.latex?X_{1i},&space;X_{2i},&space;X_{3i},&space;t" title="X_{1i}, X_{2i}, X_{3i}, t" /></a> for a fish <a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a>.
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a> is the _Fish ID_ group-level factor.
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\varepsilon&space;_{i}" title="\varepsilon _{i}" /></a> is the random error term including the random smooths and an AR(1) autoregressive residual term.
-
-
-### <a name="head6"></a>:balance_scale: _Model 1: Main-effects smoothers + Group-level smoothers with same wiggliness (Random factor-smoother interaction)_
-
-Depth is modelled as a function of eight smoother terms where we find main-effects functions for the covariates plus fish-specific deviations around that main functions. Thus, change in fish depth is non-linear across the range of each covariate (seasonal depth, amplitude, mean gradient) and over time, all of which are modelled as _factor-smooth interactions_ using argument `bs"fs"`.<br />
-With this specification, gam treats random effects as smooths allowing a separate smooth for each level of _fishid_, with the same smoothing parameter for all smooths (see `?mgcv::smooth.construct.fs.smooth.spec`):
-- 4 *main-effects* smoothers (with cubic splines) for all observations of each covariate (individual effects have a common penalty term).
-- 0 group-specific *random-effect smoothers* (without fish-specific intercepts).
-- 4 group-level *random factor-smoother interactions* (i.e., for all _Fish ID_ with `bs="fs"`):
-  - A penalty to shrink these smoothers toward zero.
-  - A common smoothing parameter for all _Fish ID_ smoothers with same wiggliness (˜<a href="https://www.codecogs.com/eqnedit.php?latex=\simeq" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\simeq" title="\simeq" /></a> functional responses for all _Fish ID_ )
-  - Different shapes of the smooth terms (~inter-individual variation in responses, t2).
+	
+Create datasets of 5-min average fish positions
 ``` r
-m1 <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
-		                  s(amplitude, bs="cr", k=10) +
-                      s(mean_gradient, bs="cr", k=10) +
-                      s(dets_ts, bs="cr", k=10) +
-                      s(seasonal_depth, fishid, bs="fs", k=10, m=1) +
-                      s(amplitude, fishid, bs="fs", k=10, m=1) +
-                      s(mean_gradient, fishid, bs="fs", k=10, m=1) +
-                      s(dets_ts, fishid, bs="fs", k=10, m=1) +
-                      data=data_wels_day, method="REML", family="gaussian",
-                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
-                      AR.start=startindex, rho=rho_start_value)
+data_pike_day <-as.data.frame(data_pike_day)
+data_pike_day <- subset(data_pike_day, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_pike_day <- data_pike_day %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_pike_day$dets_ts5min <- floor_date(data_pike_day$dets_ts, "5 mins")
+data_pike_day <- data_pike_day %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_pike_day$dets_ts5min<-as.integer(data_pike_day$dets_ts5min)
+								 							 
+data_pike_night <-as.data.frame(data_pike_night)
+data_pike_night <- subset(data_pike_night, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_pike_night <- data_pike_night %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_pike_night$dets_ts5min <- floor_date(data_pike_night$dets_ts, "5 mins")
+data_pike_night <- data_pike_night %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_pike_night$dets_ts5min<-as.integer(data_pike_night$dets_ts5min)	
+								     
+data_rudd_day <-as.data.frame(data_rudd_day)
+data_rudd_day <- subset(data_rudd_day, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_rudd_day <- data_rudd_day %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_rudd_day$dets_ts5min <- floor_date(data_rudd_day$dets_ts, "5 mins")
+data_rudd_day <- data_rudd_day %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_rudd_day$dets_ts5min<-as.integer(data_rudd_day$dets_ts5min)
+								 
+data_rudd_night <-as.data.frame(data_rudd_night)
+data_rudd_night <- subset(data_rudd_night, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_rudd_night <- data_rudd_night %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_rudd_night$dets_ts5min <- floor_date(data_rudd_night$dets_ts, "5 mins")
+data_rudd_night <- data_rudd_night %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_rudd_night$dets_ts5min<-as.integer(data_rudd_night$dets_ts5min)
+								     					 
+data_tench_day <-as.data.frame(data_tench_day)
+data_tench_day <- subset(data_tench_day, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_tench_day <- data_tench_day %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_tench_day$dets_ts5min <- floor_date(data_tench_day$dets_ts, "5 mins")
+data_tench_day <- data_tench_day %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_tench_day$dets_ts5min<-as.integer(data_tench_day$dets_ts5min)
+								   
+data_tench_night <-as.data.frame(data_tench_night)
+data_tench_night <- subset(data_tench_night, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_tench_night <- data_tench_night %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_tench_night$dets_ts5min <- floor_date(data_tench_night$dets_ts, "5 mins")
+data_tench_night <- data_tench_night %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_tench_night$dets_ts5min<-as.integer(data_tench_night$dets_ts5min)
+				
+			
+data_tench_day <-as.data.frame(data_tench_day)
+data_tench_day <- subset(data_tench_day, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_tench_day <- data_tench_day %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_tench_day$dets_ts5min <- floor_date(data_tench_day$dets_ts, "5 mins")
+data_tench_day <- data_tench_day %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_tench_day$dets_ts5min<-as.integer(data_tench_day$dets_ts5min)
+								     
+data_tench_night <-as.data.frame(data_tench_night)
+data_tench_night <- subset(data_tench_night, select=c(fishid,dets_ts,det_depth,seasonal_depth, amplitude, mean_gradient, startindex))
+data_tench_night <- data_tench_night %>%
+                      group_by(fishid, dets_ts, startindex) %>%
+                      summarise_at(vars(det_depth,seasonal_depth, amplitude, mean_gradient), mean)
+data_tench_night$dets_ts5min <- floor_date(data_tench_night$dets_ts, "5 mins")
+data_tench_night <- data_tench_night %>% group_by(fishid, dets_ts5min, startindex) %>%
+                                               summarise(det_depth = mean(det_depth),seasonal_depth = mean(seasonal_depth),
+                                               amplitude = mean(amplitude),mean_gradient = mean(mean_gradient),)
+data_tench_night$dets_ts5min<-as.integer(data_tench_night$dets_ts5min)								   	
 ```
-This is equivalent to:
-``` r
-m1 <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
-		                  s(amplitude, bs="cr", k=10) +
-                      s(mean_gradient, bs="cr", k=10) +
-                      s(dets_ts, bs="cr", k=10) +
-                      t2(seasonal_depth, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE) +
-                      t2(amplitude, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE) +
-                      t2(mean_gradient, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE) +
-                      t2(dets_ts, fishid, bs=c("tp","re"), k=10, m=1, full=TRUE),
-                      data=data_wels_day, method="REML", family="gaussian",
-                      discrete=TRUE, nthreads=10, cluster=10, gc.level=0,
-                      AR.start=startindex, rho=rho_start_value)
-```
-(but see **Variable selection and parameters estimation of the main and random smooth effects**)
-
-:information_source: _Note that the default spline used is `"tp"` unless otherwise specified. In the models formuia I specify cyclic splines (`"cr"`) for the _main-effects smoothers_ while the _random smoothers_ use the default `"tp"` that is equivalent to specifying `xt="tp"` in the first formula._
 
 
 # <a name="headafinalmodels"></a>Final models[:page_facing_up:](#headindex)
-
-Based on the global structure (**Model 1**), model selection went through the following steps:
-
-1. Choose the error distribution that fits each data subset best, based on maximum goodness-of-fit estimation, AIC and inspection of residual patterns using QQ plots.
-2. Splines selection: try different splines functions (e.g., `"cr"` vs. `"tp"`).<br />
-3.  Try different number of basis dimensions (**k-value**). Shift k-value from 10 to 20 to 50 to n:<br />
-  - The model fitted uses group-level _random factor-smooth interactions_ where the k-value is determined using the `gam.check()` function.<br />
-  - After fitting an initial model with k=10 (default), `gam.check()` is used to see whether more wiggliness is necessary, i.e., whether the smooths use up all of df (edf <a href="https://www.codecogs.com/eqnedit.php?latex=\approx" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\approx" title="\approx" /></a> k´) or not (edf < k`). <br />
-  - If `gam.check()` suggests that more wiggliness is necessary (edf <a href="https://www.codecogs.com/eqnedit.php?latex=\approx" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\approx" title="\approx" /></a> k`), this procedure is repeated again using models with increased k-values allowing for the splines to adapt to the wiggly and non-wiggly parts.<br />
-  - The k-value can be different for both _main-effects_ smoothers and _random factor-smooth interactions_ (mixed k: more or less wiggliness for each term).<br />
-4. Compare models using residuals QQ plots, AIC and <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a>. However, the AIC-based method should be treated with care when applied to models including an AR1 structure or *random factor-smoother interactions* as it is the case. Instead, performing Chi-square test with the functions `anova()` (_mgcv_ package) and `compareML()` (_itsadug_ package) is generally preferred and more accurate (mostly for non-normal error models).<br />
-5. Where appropiate (linear relationships), compute a simplified equivalent model by dropping the smoothing functions. Compare the full-smoothing and the simplified models (I omit this step in this report).<br />
-6. On the selected model, extract and round the edf of the smooth terms (estimated with penalization).<br />
-7. Re-fit the model with fixed edf (un-penalized) for the _main-effects smoothers_ using `fx=TRUE`, excluding the _random group-level smoothers_.<br />
-8. Compare models with and without fixed edf.
-
 
 # <a name="headSpeciesPike"></a>_Pike_[:page_facing_up:](#headindex)
 
 ## <a name="headSpeciesPike"></a>![Image name](/outputs/icons/pike_body_1.png) [:sunny:](#head1)
 
-For this specific data set, given that AIC model selection is a questionable method here as outlined in **Final models**, we computed models using either Gaussian or an alternative scaled T-distribution (`"scat"`) with cubic splines (`"cr"`) for the _random factor-smoother interactions_. Overall, the data fitted well to a Gaussian distribution while the latter distribution didn´t improve the model fit.<br />
-Models k10, k20 and k50 with equal or mixed k-values (higher or lower for the random terms) were compared through Chi-square test using the function _compareML()_. In all cases, the models presented edf/k´ ratios far from ideal, however, the residuals patterns distribution for the smooth terms of those models were relatively acceptable.<br />
-The mixed k50 model (higher for the random terms) was preferred but given that more data are necessary to estimate the larger number of coefficients from the increased complexity, it couldn´t be computed with fixed df. We finally kept the next closest in preference based on Chi-square test and distribution of residual patterns, with a <a href="https://www.codecogs.com/eqnedit.php?latex=R&space;^{2}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?R&space;^{2}" title="R ^{2}" /></a> indicating very good performance.<br />
-
-:balance_scale: **Model**
 
 ``` r
 m1s_pike_day_20k_high_random <- bam(det_depth ~ s(seasonal_depth, bs="cr", k=10) +
