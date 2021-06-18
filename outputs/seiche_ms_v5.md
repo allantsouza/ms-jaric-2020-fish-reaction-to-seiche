@@ -1043,6 +1043,8 @@ dev.off()
 ```
 ![Seiche_models](/outputs/plots/Fig.X.png "Seiche_models")
 
+**Fig.X** Plots of fish response to internal seiche as a function of gradual thermocline amplitude (i.e., difference of seasonal and actual thermocline depth). Depth was measured repeatedly every one minute (5-min averaged) between June 16 and October 15 in 12 adult northern pike (Esox lucius), 15 rudd (Scardinius erythropthalmus), 19 tench (Tinca tinca) and 15 wels catfish (Silurus glanis) during daytime and at night. Each line corresponds to an individual trajectory across increasing seiche amplitude (left to right) with zero representing periods without seiche (dotted line). Mean depth is denoted by a vertical line. Non-linear trends were modelled as reaction norms, indicative of behavioral plasticity, by including random intercept and random slope effects in the model. The shaded area represents the 95% CI for the fitted curve indicating the range of action of an individual or variability in a reaction norm.
+
 
 :chart: **Figure Y**
 ``` r
@@ -1149,6 +1151,8 @@ dev.off()
 ```
 ![Seiche_models](/outputs/plots/Fig.Y.png "Seiche_models")
 
+**Fig. Y** Inter- and intra-individual variation in depth use across the amplitude of seiche (depicted by color gradient) according to diel periods. Individual fish are arranged in increasing order of mean depth performance (x-axis, left to right). The average depth use of the group is denoted by a dashed horizontal line. A single vertical line denotes variation in a fish’s mean depth across a range of average amplitudes (i.e., individual repeatability) with a longer line indicating higher intra-individual variation. Within a group behavioral differences among fish are shown from left to right, with less overlapping vertical lines indicating overall larger repeatable behavioral differences between the individual fish. Adjusted repeatability (R) was computed from fitted GAMMs after controlling for confounding effects (fixed and random factors) of seasonal depth and mean gradient over time.
+
 :chart: **Figure Z**
 ``` r
 
@@ -1214,6 +1218,8 @@ p<-grid.arrange(arrangeGrob(p, left = y.grob, bottom = x.grob, right= right.grob
 dev.off()
 ```
 ![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
+
+**Fig.Z** Partial effects of the smooth functions of the amplitude of seiche on fish vertical movement of northern pike, rudd, tench and wels catfish according to diel periods. The slopes represent average effects for the amplitude of thermocline based on GAMs fit to 5-min average fish position data over a whole time period. Splines for other predictors are omitted.
 
 
 
