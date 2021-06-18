@@ -609,21 +609,7 @@ mdl_rudd_night_fixed <- bam(formula = det_depth ~
 
 These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate.
 
-`(Xji, bs=’ts’)`: average main effects
-
-`s(fishID, bs=’re’)`: fish-specific means (random intercepts)
-
-`(Xji, fishID, bs=’re’)`: fish-specific effects (random slopes) of the three covariates
-
-`m=1`: specifies a squared first derivative penalty term that serves to correct uncertainty from the main-effects smoothers, thus reducing concurvity between the two terms
-
-`bs=’ts’`: shrinkage smoothers based on thin plate regression spline (t.p.r.s.) implements the smoothing penalty βTSi β through the identity penalty matrix S (smooth coefficients are shrunk to 0
-
-`AR.start = startindex`: starting value of an autocorrelation term AR(1)
-
-`rho = rho_start_value`: autocorrelation coefficient ρ computed using the _start_value_rho()_ function in the R package _itsadug_
-
-The global model formula can be expressed as follows:
+The final model formula can be expressed as follows:
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" title="\boldsymbol{E\left ( y_{i} \right )}= \beta_{0} + f_{1}\left ( X_{1i} \right ) + f_{2}\left ( X_{1i} \right )_{id_{i}} + f_{3}\left ( X_{2i} \right ) + f_{4}\left ( X_{2i} \right )_{id_{i}} + f_{5}\left ( X_{3i} \right ) + f_{6}\left ( X_{3i} \right )_{id_{i}} + f_{7}\left ( t_{i} \right ) + f_{8}\left ( t_{i} \right )_{id_{i}} + \varepsilon _{i}" /></a>
 
@@ -645,6 +631,21 @@ at time <a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blan
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\varepsilon&space;_{i}" title="\varepsilon _{i}" /></a> is the random error term including the random smooths and an AR(1) autoregressive residual term.
 
+**Specifications in R syntax**
+
+`(Xji, bs=’ts’)`: average main effects
+
+`s(fishID, bs=’re’)`: fish-specific means (random intercepts)
+
+`(Xji, fishID, bs=’re’)`: fish-specific effects (random slopes) of the three covariates
+
+`m=1`: specifies a squared first derivative penalty term that serves to correct uncertainty from the main-effects smoothers, thus reducing concurvity between the two terms
+
+`bs=’ts’`: shrinkage smoothers based on thin plate regression spline (t.p.r.s.) implements the smoothing penalty βTSi β through the identity penalty matrix S (smooth coefficients are shrunk to 0
+
+`AR.start = startindex`: starting value of an autocorrelation term AR(1)
+
+`rho = rho_start_value`: autocorrelation coefficient ρ computed using the _start_value_rho()_ function in the R package _itsadug_
 
 ``` r
 mdl_tench_day_simple_BRNs <- bam(formula = det_depth ~
@@ -1271,6 +1272,3 @@ dev.off()
 ![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
 
 **Figure Z** Partial effects of the smooth functions of the amplitude of seiche on fish vertical movement of northern pike, rudd, tench and wels catfish according to diel periods. The slopes represent average effects for the amplitude of thermocline based on GAMs fit to 5-min average fish position data over a whole time period. Splines for other predictors are omitted.
-
-                        
-                             
