@@ -2,30 +2,30 @@
 ## <a name="headindex">Seiche MS v5
 ---
 
-# [Data](#headdata)
+## [Data](#headdata)
 
-# [Final models ](#headamodel_fishid)
+## [Final models ](#headamodel_fishid)
 
 [![Image name](/outputs/icons/pike_index_1.png)](#headSpeciesPike)
 [![Image name](/outputs/icons/wels_index_1.png)](#headSpeciesWels)
 [![Image name](/outputs/icons/rudd_index_1.png)](#headSpeciesRudd)
 [![Image name](/outputs/icons/tench_index_1.png)](#headSpeciesTench)
 
-# [Final models table ](#headafinaltable)
+## [Final models table ](#headafinaltable)
 
-# [Random-intercept-only models (model_fishid)](#headamodel_fishid)
+## [Random-intercept-only models (model_fishid)](#headamodel_fishid)
 
-# [Random-intercept models with fixed-effects (model_fixed)](#headamodel_fixed)
+## [Random-intercept models with fixed-effects (model_fixed)](#headamodel_fixed)
 
-# [Random-intercept-random-slopes models (model_BRNs)](#headamodel_BRNs)
+## [Random-intercept-random-slopes models (model_BRNs)](#headamodel_BRNs)
 
-# [Variance components and Repeatability](#headavars)
+## [Variance components and Repeatability](#headavars)
 
-# [Table 2](#headatable2)
+## [Table 2](#headatable2)
 
-# [Plotting reaction norms to seiche and individual variability](#headaplots)
+## [Plotting reaction norms to seiche and individual variability](#headaplots)
 
-# [References](#headreferences)
+## [References](#headreferences)
 
 ---
 
@@ -297,7 +297,7 @@ data_wels_day_5min <- df_mean_5min(data_wels_day)
 data_wels_night_5min <- df_mean_5min(data_wels_night)
 ```
 
-# <a name="headamodel_fishid"></a> Random-intercept-only models (model_fishid) [:page_facing_up:](#headindex)
+## <a name="headamodel_fishid"></a> Random-intercept-only models (model_fishid) [:page_facing_up:](#headindex)
 
 These individual-level models serve to calculate the raw phenotypic variance without controlling for fixed-effects of covariates
 ``` r
@@ -400,7 +400,7 @@ mdl_wels_night_fishid <- bam(formula = det_depth ~
                                        AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headamodel_fixed"></a> Random-intercept models with fixed-effects (model_fixed)[:page_facing_up:](#headindex)
+## <a name="headamodel_fixed"></a> Random-intercept models with fixed-effects (model_fixed)[:page_facing_up:](#headindex)
 
 These models include the fixed effects of the covariates + the random intercept
 ``` r
@@ -611,7 +611,7 @@ mdl_rudd_night_fixed <- bam(formula = det_depth ~
                                       AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headamodel_BRNs"></a> Random-intercept-random-slopes models (model_BRNs)[:page_facing_up:](#headindex)
+## <a name="headamodel_BRNs"></a> Random-intercept-random-slopes models (model_BRNs)[:page_facing_up:](#headindex)
 
 These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate
 
@@ -858,7 +858,7 @@ mdl_rudd_night_BRNs <- bam(formula = det_depth ~
                                      AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headavars"></a>Variance components and Repeatability[:page_facing_up:](#headindex)
+## <a name="headavars"></a>Variance components and Repeatability[:page_facing_up:](#headindex)
 
 Create separate lists containing all fitted models
 ``` r
@@ -979,7 +979,7 @@ All_R <- merge(All_R, adj_BRNs_R, by =c("ID"),all=TRUE)
 rownames(All_R) <- names
 ```
 
-# <a name="headatable2"></a>Table 2 [:page_facing_up:](#headindex)
+## <a name="headatable2"></a>Table 2 [:page_facing_up:](#headindex)
 
 |    <br>Predictors                   |    <br>Northern Pike            |                                  |    <br>Wels catfish             |                                  |    <br>Tench                    |                                  |    <br>Rudd                     |                                  |
 |-------------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|
@@ -999,7 +999,8 @@ rownames(All_R) <- names
 |    <br>Adjusted R2                  |    <br>0.54                     |    <br>0.56                      |    <br>0.59                     |    <br>0.56                      |    <br>0.39                     |    <br>0.19                      |    <br>0.35                     |    <br>0.33                      |
 |    <br>Deviance explained   (%)     |    <br>53.8                     |    <br>56.5                      |    <br>50.4                     |    <br>48.3                      |    <br>38.7                     |    <br>19.1                      |    <br>35                       |    <br>33                        |
 
-# <a name="headaplots"></a>Plotting reaction norms to seiche and individual variability [:page_facing_up:](#headindex)
+
+## <a name="headaplots"></a>Plotting reaction norms to seiche and individual variability [:page_facing_up:](#headindex)
 
 :chart: **Figure X**
 ``` r
@@ -1212,6 +1213,8 @@ p<-grid.arrange(arrangeGrob(p, left = y.grob, bottom = x.grob, right= right.grob
 dev.off()
 ```
 ![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
+
+
 
 
 
