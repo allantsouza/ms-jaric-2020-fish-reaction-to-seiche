@@ -4,8 +4,6 @@
 
 ## [Data](#headdata)
 
-## [Final models ](#headamodel_fishid)
-
 [![Image name](/outputs/icons/pike_index_1.png)](#headSpeciesPike)
 [![Image name](/outputs/icons/wels_index_1.png)](#headSpeciesWels)
 [![Image name](/outputs/icons/rudd_index_1.png)](#headSpeciesRudd)
