@@ -610,12 +610,19 @@ mdl_rudd_night_fixed <- bam(formula = det_depth ~
 These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate.
 
 _(Xji, bs=’ts’)_: average main effects
+
 _s(fishID, bs=’re’)_: fish-specific means (random intercepts)
+
 _(Xji, fishID, bs=’re’)_: fish-specific effects (random slopes) of the three covariates
+
 _m=1_: specifies a squared first derivative penalty term that serves to correct uncertainty from the main-effects smoothers, thus reducing concurvity between the two terms
+
 _bs=’ts’_: shrinkage smoothers based on thin plate regression spline (t.p.r.s.) implements the smoothing penalty βTSi β through the identity penalty matrix S (smooth coefficients are shrunk to 0
+
 _AR.start = startindex_: starting value of an autocorrelation term AR(1)
+
 _rho = rho_start_value_: autocorrelation coefficient ρ computed using the _start_value_rho()_ function in the R package _itsadug_
+
 ``` r
 mdl_tench_day_simple_BRNs <- bam(formula = det_depth ~
                                            s(seasonal_depth, bs = 'ts') +
