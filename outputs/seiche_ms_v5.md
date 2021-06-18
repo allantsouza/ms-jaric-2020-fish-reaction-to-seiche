@@ -884,8 +884,9 @@ model_BRNs <- list(mdl_tench_day_BRNs,
                    mdl_rudd_night_BRNs)
 ```
 
-Calculate variance components on the original scale
+**Calculate variance components on the original scale**
 
+We implement _gam.vcomp()_ in a custom function to calculate variance components (±95% CI) for each of the smooth terms. The function calculates the variance components directly on the original scale by reversing the rescaling of the penalty matrices (Wood 2008, 2011):
 ``` r
 for(model in model_BRNs){
         vars <- function(model){
@@ -904,7 +905,13 @@ for(model in model_BRNs){
 
 ```
 
-Calculate repeatabilities
+**Calculate repeatabilities**
+
+We analyzed the consistency of fish depths across the range of amplitude values. For that we calculated the repeatability index (R) as the proportion of the total phenotypic variance (Vtotal) that is due to inter-.individual differences (VfishID) (Nakagawa and Schielzeth, 2010). In a mixed-effects model Vtotal is partitioned in two components, inter-individual variance (VfishID) and intra-individual variance (i.e., residual variance, Ve) which in GAMM are equivalent to the smoothing random intercept s(τ00) and the scale parameter ϕ, respectively (see section above). Thus:
+
+R=V_fishID/(V_fishID+V_e )=(s(τ_00))/(s(τ_00)+∅)
+
+For each species and diel period we calculate both agreement and adjusted R. Agreement R was estimated from models fitted without fixed effects including only the random intercept fishID (model_fishid). Adjusted R was estimated either from models including the fixed effects of the covariates plus the random intercept (model_fixed) or from models with additional random slopes for each covariate (model_BRNs). In both cases, R is assumed to be constant for all values of the confounding (fixed and random) variables. We use the following code to compute R estimates across models and put them in a table (Table X, SM):
 ``` r
 # Create a list for each species and diel period
 
@@ -1227,3 +1234,4 @@ dev.off()
 ![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
 
 **Figure Z** Partial effects of the smooth functions of the amplitude of seiche on fish vertical movement of northern pike, rudd, tench and wels catfish according to diel periods. The slopes represent average effects for the amplitude of thermocline based on GAMs fit to 5-min average fish position data over a whole time period. Splines for other predictors are omitted.
+
