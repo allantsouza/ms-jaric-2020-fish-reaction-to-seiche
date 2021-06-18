@@ -13,10 +13,6 @@
 
 # [Final models table ](#headafinaltable)
 
-# [Alternative model structures](#headaltmodels)
-
-# [Issues and further improvements](#headissuesandimprovements)
-
 # [References](#headreferences)
 
 ---
