@@ -1,5 +1,5 @@
 # <a name="headindex">Influence of internal seiche dynamics on vertical distribution of fish
-## <a name="headindex">(Seiche MS v5)
+## <a name="headindex">Seiche MS v5
 ---
 
 # [Data](#headdata)
@@ -20,6 +20,8 @@
 # [Random-intercept-random-slopes models (model_BRNs)](#headamodel_BRNs)
 
 # [Variance components and Repeatability](#headavars)
+
+# [Table 2](#headatable2)
 
 # [Plotting reaction norms to seiche and individual variability](#headaplots)
 
@@ -734,7 +736,6 @@ mdl_pike_night_BRNs <- bam(formula = det_depth ~
                                      AR.start = startindex, rho = rho_start_value)
 
 
-
 mdl_wels_day_simple_BRNs <- bam(formula = det_depth ~
                                           s(seasonal_depth, bs = 'ts') +
                                           s(amplitude, bs = 'ts') +
@@ -794,7 +795,6 @@ mdl_wels_night_BRNs <- bam(formula = det_depth ~
                                      family = Gamma(link = "log"), select=TRUE,method="REML",
                                      nthreads = 10, cluster = 10, gc.level = 0,
                                      AR.start = startindex, rho = rho_start_value)
-
 
 
 mdl_rudd_day_simple_BRNs <- bam(formula = det_depth ~
@@ -978,6 +978,26 @@ All_R <- merge(unadj_R, adj_fix_R, by =c("ID"),all=TRUE)
 All_R <- merge(All_R, adj_BRNs_R, by =c("ID"),all=TRUE)
 rownames(All_R) <- names
 ```
+
+# <a name="headatable2"></a>Table 2 [:page_facing_up:](#headindex)
+
+|    <br>Predictors                   |    <br>Northern Pike            |                                  |    <br>Wels catfish             |                                  |    <br>Tench                    |                                  |    <br>Rudd                     |                                  |
+|-------------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|---------------------------------|----------------------------------|
+|    <br>                             |    <br>Day<br>   <br>(n=12)     |    <br>Night<br>   <br>(n=12)    |    <br>Day<br>   <br>(n=15)     |    <br>Night<br>   <br>(n=15)    |    <br>Day<br>   <br>(n=19)     |    <br>Night<br>   <br>(n=19)    |    <br>Day<br>   <br>(n=15)     |    <br>Night<br>   <br>(n=15)    |
+|    <br>Parametric   coefficients    |    <br>                         |    <br>                          |    <br>                         |    <br>                          |    <br>                         |    <br>                          |    <br>                         |    <br>                          |
+|    <br>(Intercept)                  |    <br>6.80                     |    <br>6.25 ***                  |    <br>1.56 ***                 |    <br>1.06 ***                  |    <br>4.08 ***                 |    <br>0.95 ***                  |    <br>2.99 ***                 |    <br>0.52 ***                  |
+|    <br>Smooth terms                 |    <br>                         |    <br>                          |    <br>                         |    <br>                          |    <br>                         |    <br>                          |    <br>                         |    <br>                          |
+|    <br>s(seasonal depth)            |    <br>7.88                     |    <br>8.34                      |    <br>8.94 ***                 |    <br>8.78 ***                  |    <br>8.54 ***                 |    <br>8.86 ***                  |    <br>8.52 ***                 |    <br>8.92 ***                  |
+|    <br>s(amplitude)                 |    <br>7.33 *                   |    <br>7.53                      |    <br>8.67 **                  |    <br>8.30                      |    <br>5.86 ***                 |    <br>7.38                      |    <br>7.92 **                  |    <br>8.70 ***                  |
+|    <br>s(mean gradient)             |    <br>4.07                     |    <br>4.80                      |    <br>8.51 **                  |    <br>7.46                      |    <br>6.93 ***                 |    <br>8.28 *                    |    <br>7.24                     |    <br>8.13 ***                  |
+|    <br>s (time)                     |    <br>3.63 ***                 |    <br>8.36 ***                  |    <br>8.98 ***                 |    <br>8.95 ***                  |    <br>8.86 ***                 |    <br>8.91 ***                  |    <br>8.85 ***                 |    <br>8.95 ***                  |
+|    <br>s(fishID.seasonal depth)     |    <br>10.79 ***                |    <br>10.73 ***                 |    <br>13.99 ***                |    <br>13.96 ***                 |    <br>14.84 ***                |    <br>15.47 ***                 |    <br>5.13 ***<br>   <br>      |    <br>13.25 ***<br>   <br>      |
+|    <br>s(fishID.amplitude)          |    <br>9.40 ***<br>   <br>      |    <br>9.93 ***<br>   <br>       |    <br>13.70 ***<br>   <br>     |    <br>13.41 ***<br>   <br>      |    <br>9.32 **<br>   <br>       |    <br>16.37 ***<br>   <br>      |    <br>9.55 ***<br>   <br>      |    <br>12.15 ***                 |
+|    <br>s(fishID.mean gradient)      |    <br>8.66 ***<br>   <br>      |    <br>9.53 ***<br>   <br>       |    <br>13.41 ***<br>   <br>     |    <br>13.04 ***<br>   <br>      |    <br>11.90 ***<br>   <br>     |    <br>16.63 ***<br>   <br>      |    <br>9.96 ***<br>   <br>      |    <br>12.78 ***<br>   <br>      |
+|    <br>s(fishID)                    |    <br>10.79 ***<br>   <br>     |    <br>10.81 ***<br>   <br>      |    <br>13.99 ***<br>   <br>     |    <br>13.99 ***<br>   <br>      |    <br>15.99 ***<br>   <br>     |    <br>16.64 ***                 |    <br>12.59 ***<br>   <br>     |    <br>13.32 ***<br>   <br>      |
+|    <br>Scale parameter (ϕ)          |    <br>3.86                     |    <br>4.63                      |    <br>0.09                     |    <br>0.32                      |    <br>2.14                     |    <br>0.27                      |    <br>0.96                     |    <br>0.69                      |
+|    <br>Adjusted R2                  |    <br>0.54                     |    <br>0.56                      |    <br>0.59                     |    <br>0.56                      |    <br>0.39                     |    <br>0.19                      |    <br>0.35                     |    <br>0.33                      |
+|    <br>Deviance explained   (%)     |    <br>53.8                     |    <br>56.5                      |    <br>50.4                     |    <br>48.3                      |    <br>38.7                     |    <br>19.1                      |    <br>35                       |    <br>33                        |
 
 # <a name="headaplots"></a>Plotting reaction norms to seiche and individual variability [:page_facing_up:](#headindex)
 
@@ -1188,6 +1208,8 @@ right.grob<-textGrob(expression(bold("Day                                   Nigh
 p<-grid.arrange(arrangeGrob(p, left = y.grob, bottom = x.grob, right= right.grob))
 dev.off()
 ```
+
+
 
 
 
