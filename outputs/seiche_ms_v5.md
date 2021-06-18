@@ -9,8 +9,6 @@
 [![Image name](/outputs/icons/rudd_index_1.png)](#headSpeciesRudd)
 [![Image name](/outputs/icons/tench_index_1.png)](#headSpeciesTench)
 
-## [Final models table ](#headafinaltable)
-
 ## [Random-intercept-only models (model_fishid)](#headamodel_fishid)
 
 ## [Random-intercept models with fixed-effects (model_fixed)](#headamodel_fixed)
@@ -1121,10 +1119,8 @@ label_species <- as_labeller(c('pike'="Northern pike",
 
 label_diel_period <- as_labeller(c('day'="Day",'night'="Night"))
 
-
 all_labels<-data.frame(fishid=c(3,3.5,4.3,3.6,3,3.5,4.3,3.6), det_depth=c(10.5,10.5,10.5,10.5,10.5,10.5,10.5,10.5), species = c('pike','rudd','tench','wels','pike','rudd','tench','wels'),
                        diel_period = c('day','day','day','day','night','night','night','night'), label= c("R = 0.98", "R = 0.11", "R = 0.10", "R = 0.40", "R = 0.52", "R = 0.10", "R = 0.19", "R = 0.37"))
-
 
 mid <- mean(all_sp_diel_5min$amplitude)
 P<-ggplot(all_sp_diel_5min, aes(fishid, det_depth)) +
@@ -1157,7 +1153,6 @@ P<-ggplot(all_sp_diel_5min, aes(fishid, det_depth)) +
 
 y.grob <- textGrob("Depth (m)", gp=gpar(fontface="plain", col="black", fontsize=20), rot=90)
 x.grob <- textGrob("", gp=gpar(fontface="plain", col="black", fontsize=20))
-
 
 tiff("Fig.Y.tiff", width = 465, height = 265, units='mm', res = 300)
 p<-grid.arrange(arrangeGrob(P, left = y.grob, bottom = x.grob))
@@ -1234,4 +1229,3 @@ dev.off()
 ![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
 
 **Fig.Z** Partial effects of the smooth functions of the amplitude of seiche on fish vertical movement of northern pike, rudd, tench and wels catfish according to diel periods. The slopes represent average effects for the amplitude of thermocline based on GAMs fit to 5-min average fish position data over a whole time period. Splines for other predictors are omitted.
-
