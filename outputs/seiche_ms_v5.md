@@ -479,7 +479,6 @@ mdl_pike_day_fixed <- bam(formula = det_depth ~
                                     AR.start = startindex, rho = rho_start_value)
 
 
-
 mdl_pike_night_simple_fixed <- bam(formula = det_depth ~
                                              s(seasonal_depth, bs = 'ts') +
                                              s(amplitude, bs = 'ts') +
@@ -556,7 +555,6 @@ mdl_wels_night_fixed <- bam(formula = det_depth ~
                                       family = Gamma(link = "log"), select=TRUE,method="REML",
                                       nthreads = 10, cluster = 10, gc.level = 0,
                                       AR.start = startindex, rho = rho_start_value)
-
 
 
 mdl_rudd_day_simple_fixed <- bam(formula = det_depth ~
