@@ -608,13 +608,14 @@ mdl_rudd_night_fixed <- bam(formula = det_depth ~
 ## <a name="headamodel_BRNs"></a> Random-intercept-random-slopes models (model_BRNs)[:page_facing_up:](#headindex)
 
 These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate.
-(Xji, bs=’ts’) correspond to average main effects, s(fishID, bs=’re’) is the fish-specific means (random intercepts) and (Xji, fishID, bs=’re’) the fish-specific effects (random slopes) of the three covariates.
-When the model is fit, the maximum number of basis functions that a smooth term actually uses is indicated by k' where always k' < k, and the estimated effective degrees of freedom (EDF) are an indicative of the level of non-linearity of the relationships between predictors and response variable. If EDF-1≈1, the smooth term approaches a linear relationship penalized by the model. EDF can therefore be used to evaluate complexity of the smooth terms in the fitted model. Here, we use default ten basis functions (k=10).
-To fit smooth functions to predictors we use a special class of shrinkage smoothers based on thin plate regression spline (t.p.r.s.) (specified by bs=’ts’) that implements the smoothing penalty βTSi β through the identity penalty matrix S so that smooth coefficients are shrunk to 0 (see Equation 3). While this approach allows ruling out heavily penalized smooth terms from the model thus performing automatic variable selection (Marra & Wood, 2011), for simplicity we attain to a general model formula with all predictors included in the model, irrespective of the smoothness parameter and/or the level of linearity (EDF) after penalization by the model.
-The argument m=1 explicitly specifies a squared first derivative penalty term that serves to correct uncertainty from the main-effects smoothers (with second derivative penalty by default), thus reducing concurvity between the two terms (Pedersen, Miller, Simpson & Ross, 2019).
-AR.start = startindex indicates the starting value of an autocorrelation structure AR(1) and rho = rho_start_value, the autocorrelation coefficient ρ computed from the starting lag value of a model without the autocorrelation term using the start_value_rho() function in the R package itsadug (van Rij et al., 2017).
-We used restricted maximum likelihood smoothing parameter estimation (method = REML) that treats random effects similarly as in GLMM likelihood based methods (Wood 2011). In addition, it allows computing confidence intervals of the variance components from the smoothing parameters with the function gam.vcomp(). Note that mgcv only supports simple i.i.d. Gaussian random effects and with the above formula it is only possible to estimate uncorrelated random effects but not correlations between the subject-level random intercepts and slopes (and the slope–intercept covariance?).
 
+_(Xji, bs=’ts’)_: average main effects
+_s(fishID, bs=’re’)_: fish-specific means (random intercepts)
+_(Xji, fishID, bs=’re’)_: fish-specific effects (random slopes) of the three covariates
+_m=1_: specifies a squared first derivative penalty term that serves to correct uncertainty from the main-effects smoothers, thus reducing concurvity between the two terms
+_bs=’ts’_: shrinkage smoothers based on thin plate regression spline (t.p.r.s.) implements the smoothing penalty βTSi β through the identity penalty matrix S (smooth coefficients are shrunk to 0
+_AR.start = startindex_: starting value of an autocorrelation term AR(1)
+_rho = rho_start_value_: autocorrelation coefficient ρ computed using the _start_value_rho()_ function in the R package _itsadug_
 ``` r
 mdl_tench_day_simple_BRNs <- bam(formula = det_depth ~
                                            s(seasonal_depth, bs = 'ts') +
