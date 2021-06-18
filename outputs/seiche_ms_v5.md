@@ -4,7 +4,7 @@
 
 # [Data](#headdata)
 
-# [Final models ](#headafinalmodels)
+# [Final models ](#headamodel_fishid)
 
 [![Image name](/outputs/icons/pike_index_1.png)](#headSpeciesPike)
 [![Image name](/outputs/icons/wels_index_1.png)](#headSpeciesWels)
@@ -13,15 +13,15 @@
 
 # [Final models table ](#headafinaltable)
 
-# [Random-intercept-only models (model_fishid)](#headaltmodels)
+# [Random-intercept-only models (model_fishid)](#headamodel_fishid)
 
-# [Random-intercept models with fixed-effects (model_fixed)](#headaltmodels)
+# [Random-intercept models with fixed-effects (model_fixed)](#headamodel_fixed)
 
-# [Random-intercept-random-slopes models (model_BRNs)](#headaltmodels)
+# [Random-intercept-random-slopes models (model_BRNs)](#headamodel_BRNs)
 
-# [Variance components and Repeatability](#headaltmodels)
+# [Variance components and Repeatability](#headavars)
 
-# [Plotting reaction norms to seiche and individual variability](#headaltmodels)
+# [Plotting reaction norms to seiche and individual variability](#headaplots)
 
 # [References](#headreferences)
 
@@ -295,7 +295,7 @@ data_wels_day_5min <- df_mean_5min(data_wels_day)
 data_wels_night_5min <- df_mean_5min(data_wels_night)
 ```
 
-# <a name="headafinalmodels"></a> Random-intercept-only models (model_fishid) [:page_facing_up:](#headindex)
+# <a name="headamodel_fishid"></a> Random-intercept-only models (model_fishid) [:page_facing_up:](#headindex)
 
 These individual-level models serve to calculate the raw phenotypic variance without controlling for fixed-effects of covariates
 ``` r
@@ -398,7 +398,7 @@ mdl_wels_night_fishid <- bam(formula = det_depth ~
                                        AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headafinalmodels"></a> Random-intercept models with fixed-effects (model_fixed)[:page_facing_up:](#headindex)
+# <a name="headamodel_fixed"></a> Random-intercept models with fixed-effects (model_fixed)[:page_facing_up:](#headindex)
 
 These models include the fixed effects of the covariates + the random intercept
 ``` r
@@ -609,7 +609,7 @@ mdl_rudd_night_fixed <- bam(formula = det_depth ~
                                       AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headafinalmodels"></a> Random-intercept-random-slopes models (model_BRNs)[:page_facing_up:](#headindex)
+# <a name="headamodel_BRNs"></a> Random-intercept-random-slopes models (model_BRNs)[:page_facing_up:](#headindex)
 
 These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate
 
@@ -858,7 +858,7 @@ mdl_rudd_night_BRNs <- bam(formula = det_depth ~
                                      AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headafinalmodels"></a>Variance components and Repeatability[:page_facing_up:](#headindex)
+# <a name="headavars"></a>Variance components and Repeatability[:page_facing_up:](#headindex)
 
 Create separate lists containing all fitted models
 ``` r
@@ -979,7 +979,7 @@ All_R <- merge(All_R, adj_BRNs_R, by =c("ID"),all=TRUE)
 rownames(All_R) <- names
 ```
 
-# <a name="headafinalmodels"></a>Plotting reaction norms to seiche and individual variability [:page_facing_up:](#headindex)
+# <a name="headaplots"></a>Plotting reaction norms to seiche and individual variability [:page_facing_up:](#headindex)
 
 **Figure X**
 ``` r
@@ -1188,5 +1188,7 @@ right.grob<-textGrob(expression(bold("Day                                   Nigh
 p<-grid.arrange(arrangeGrob(p, left = y.grob, bottom = x.grob, right= right.grob))
 dev.off()
 ```
+
+
 
 
