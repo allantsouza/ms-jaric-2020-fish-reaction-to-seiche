@@ -13,9 +13,15 @@
 
 # [Final models table ](#headafinaltable)
 
-# [Alternative model structures](#headaltmodels)
+# [Random-intercept-only models (model_fishid)](#headaltmodels)
 
-# [Issues and further improvements](#headissuesandimprovements)
+# [Random-intercept models with fixed-effects (model_fixed)](#headaltmodels)
+
+# [Random-intercept-random-slopes models (model_BRNs)](#headaltmodels)
+
+# [Variance components and Repeatability](#headaltmodels)
+
+# [Plotting reaction norms to seiche and individual variability](#headaltmodels)
 
 # [References](#headreferences)
 
@@ -289,20 +295,21 @@ data_wels_day_5min <- df_mean_5min(data_wels_day)
 data_wels_night_5min <- df_mean_5min(data_wels_night)
 ```
 
-# <a name="headafinalmodels"></a> Fit random-intercept-only models [:page_facing_up:](#headindex)
+# <a name="headafinalmodels"></a> Random-intercept-only models (model_fishid) [:page_facing_up:](#headindex)
 
-These individual-level models serve to calculate the raw phenotypic variance without controlling for fixed-effects of covariates (model_fishid)
+These individual-level models serve to calculate the raw phenotypic variance without controlling for fixed-effects of covariates
 ``` r
+# Model without autocorrelation
 mdl_tench_day_simple_fishid <- bam(formula = det_depth ~
                                              s(fishid, k = 19, bs = 're'),
                                              data = data_tench_day,
                                              family = 'gaussian', select=TRUE,method="REML",
                                              nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
+# Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_tench_day_simple_fishid, plot = TRUE)
 
-#Model with autocorrelation
+# Model with autocorrelation
 mdl_tench_day_fishid <- bam(formula = det_depth ~
                                       s(fishid, k = 19, bs = 're'),
                                       data = data_tench_day,
@@ -317,10 +324,8 @@ mdl_tench_night_simple_fishid <- bam(formula = det_depth ~
                                                family = Gamma(link = "log"), select=TRUE,method="REML",
                                                nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_tench_night_simple_fishid, plot = TRUE)
 
-#Model with autocorrelation
 mdl_tench_night_fishid <- bam(formula = det_depth ~
                                         s(fishid, k = 19, bs = 're'),
                                         data = data_tench_night_5min,
@@ -335,10 +340,8 @@ mdl_pike_day_simple_fishid <- bam(formula = det_depth ~
                                             family = 'gaussian', select=TRUE,method="REML",
                                             nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_pike_day_simple_fishid, plot = TRUE)
 
-#Model with autocorrelation
 mdl_pike_day__fishid <- bam(formula = det_depth ~
                                       s(fishid, k = 19, bs = 're'),
                                       data = data_pike_day_5min,
@@ -354,10 +357,8 @@ mdl_pike_night_simple_fishid <- bam(formula = det_depth ~
                                               family = 'gaussian', select=TRUE,method="REML",
                                               nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_pike_night_simple_fishid, plot = TRUE)
 
-#Model with autocorrelation
 mdl_pike_night_fishid <- bam(formula = det_depth ~
                                        s(fishid, k = 19, bs = 're'),
                                        data = data_pike_night_5min,
@@ -372,10 +373,8 @@ mdl_wels_day_simple_fishid <- bam(formula = det_depth ~
                                             family = Gamma(link = "log"), select=TRUE,method="REML",
                                             nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_wels_day_simple_fishid, plot = TRUE)
 
-#Model with autocorrelation
 mdl_wels_day_fishid <- bam(formula = det_depth ~
                                      s(fishid, k = 19, bs = 're'),
                                      data = data_wels_day_5min,
@@ -389,10 +388,8 @@ mdl_wels_night_simple_fishid <- bam(formula = det_depth ~
                                               family = Gamma(link = "log"), select=TRUE,method="REML",
                                               nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_wels_night_simple_fishid, plot = TRUE)
 
-#Model with autocorrelation
 mdl_wels_night_fishid <- bam(formula = det_depth ~
                                        s(fishid, k = 19, bs = 're'),
                                        data = data_wels_night_5min,
@@ -401,9 +398,9 @@ mdl_wels_night_fishid <- bam(formula = det_depth ~
                                        AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headafinalmodels"></a> Fit random-intercept models with fixed-effects[:page_facing_up:](#headindex)
+# <a name="headafinalmodels"></a> Random-intercept models with fixed-effects (model_fixed)[:page_facing_up:](#headindex)
 
-These models include the fixed effects of the covariates + the random intercept (model_fixed)
+These models include the fixed effects of the covariates + the random intercept
 ``` r
 mdl_tench_day_simple_fixed <- bam(formula = det_depth ~
                              s(seasonal_depth, bs = 'ts') +
@@ -415,10 +412,8 @@ mdl_tench_day_simple_fixed <- bam(formula = det_depth ~
                              family = 'gaussian', select=TRUE,method="REML",
                              nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_tench_day_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_tench_day_fixed <- bam(formula = det_depth ~
                                      s(seasonal_depth, bs = 'ts') +
                                      s(amplitude, bs = 'ts') +
@@ -445,10 +440,8 @@ mdl_tench_night_simple_fixed <- bam(formula = det_depth ~
                                               family = Gamma(link = "log"), select=TRUE,method="REML",
                                               nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_tench_night_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_tench_night_fixed <- bam(formula = det_depth ~
                              s(seasonal_depth, bs = 'ts') +
                              s(amplitude, bs = 'ts') +
@@ -474,10 +467,8 @@ mdl_pike_day_simple_fixed <- bam(formula = det_depth ~
                              family = 'gaussian', select=TRUE,method="REML",
                              nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_pike_day_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_pike_day_fixed <- bam(formula = det_depth ~
                                     s(seasonal_depth, bs = 'ts') +
                                     s(amplitude, bs = 'ts') +
@@ -504,10 +495,8 @@ mdl_pike_night_simple_fixed <- bam(formula = det_depth ~
                                              family = 'gaussian', select=TRUE,method="REML",
                                              nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_pike_night_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_pike_night_fixed <- bam(formula = det_depth ~
                                       s(seasonal_depth, bs = 'ts') +
                                       s(amplitude, bs = 'ts') +
@@ -533,10 +522,8 @@ mdl_wels_day_simple_fixed <- bam(formula = det_depth ~
                                            family = Gamma(link = "log"), select=TRUE,method="REML",
                                            nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_wels_day_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_wels_day_fixed <- bam(formula = det_depth ~
                                     s(seasonal_depth, bs = 'ts') +
                                     s(amplitude, bs = 'ts') +
@@ -559,10 +546,8 @@ mdl_wels_night_simple_fixed <- bam(formula = det_depth ~
                                              family = Gamma(link = "log"), select=TRUE,method="REML",
                                              nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_wels_night_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_wels_night_fixed <- bam(formula = det_depth ~
                                       s(seasonal_depth, bs = 'ts') +
                                       s(amplitude, bs = 'ts') +
@@ -586,10 +571,8 @@ mdl_rudd_day_simple_fixed <- bam(formula = det_depth ~
                                            family = 'gaussian', select=TRUE,method="REML",
                                            nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_rudd_day_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_rudd_day_fixed <- bam(formula = det_depth ~
                                     s(seasonal_depth, bs = 'ts') +
                                     s(amplitude, bs = 'ts') +
@@ -612,10 +595,8 @@ mdl_rudd_night_simple_fixed <- bam(formula = det_depth ~
                                              family = gaussian(link="log"), select=TRUE,method="REML",
                                              nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_rudd_night_simple_fixed, plot = TRUE)
 
-#Model with autocorrelation
 mdl_rudd_night_fixed <- bam(formula = det_depth ~
                                       s(seasonal_depth, bs = 'ts') +
                                       s(amplitude, bs = 'ts') +
@@ -628,12 +609,11 @@ mdl_rudd_night_fixed <- bam(formula = det_depth ~
                                       AR.start = startindex, rho = rho_start_value)
 ```
 
-# <a name="headafinalmodels"></a> Fit random-intercept-random-slopes models [:page_facing_up:](#headindex)
+# <a name="headafinalmodels"></a> Random-intercept-random-slopes models (model_BRNs)[:page_facing_up:](#headindex)
 
-These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate (model_BRNs).
+These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate
 
 ``` r
-
 mdl_tench_day_simple_BRNs <- bam(formula = det_depth ~
                                            s(seasonal_depth, bs = 'ts') +
                                            s(amplitude, bs = 'ts') +
@@ -647,10 +627,8 @@ mdl_tench_day_simple_BRNs <- bam(formula = det_depth ~
                                            family = 'gaussian', select=TRUE,method="REML",
                                            nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_tench_day_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_tench_day_BRNs <- bam(formula = det_depth ~
                                     s(seasonal_depth, bs = 'ts') +
                                     s(amplitude, bs = 'ts') +
@@ -679,10 +657,8 @@ mdl_tench_night_simple_BRNs <- bam(formula = det_depth ~
                                              family = Gamma(link = "log"), select=TRUE,method="REML",
                                              nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_tench_night_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_tench_night_BRNs <- bam(formula = det_depth ~
                                       s(seasonal_depth, bs = 'ts') +
                                       s(amplitude, bs = 'ts') +
@@ -711,10 +687,8 @@ mdl_pike_day_simple_BRNs <- bam(formula = det_depth ~
                                           family = 'gaussian', select=TRUE,method="REML",
                                           nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_pike_day_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_pike_day_BRNs <- bam(formula = det_depth ~
                                    s(seasonal_depth, bs = 'ts') +
                                    s(amplitude, bs = 'ts') +
@@ -743,10 +717,8 @@ mdl_pike_night_simple_BRNs <- bam(formula = det_depth ~
                                             family = 'gaussian', select=TRUE,method="REML",
                                             nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_pike_night_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_pike_night_BRNs <- bam(formula = det_depth ~
                                      s(seasonal_depth, bs = 'ts') +
                                      s(amplitude, bs = 'ts') +
@@ -776,10 +748,8 @@ mdl_wels_day_simple_BRNs <- bam(formula = det_depth ~
                                           family = Gamma(link = "log"), select=TRUE,method="REML",
                                           nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_wels_day_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_wels_day_BRNs <- bam(formula = det_depth ~
                                    s(seasonal_depth, bs = 'ts') +
                                    s(amplitude, bs = 'ts') +
@@ -809,10 +779,8 @@ mdl_wels_night_simple_BRNs <- bam(formula = det_depth ~
                                             family = Gamma(link = "log"), select=TRUE,method="REML",
                                             nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_wels_night_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_wels_night_BRNs <- bam(formula = det_depth ~
                                      s(seasonal_depth, bs = 'ts') +
                                      s(amplitude, bs = 'ts') +
@@ -842,10 +810,8 @@ mdl_rudd_day_simple_BRNs <- bam(formula = det_depth ~
                                           family = 'gaussian', select=TRUE,method="REML",
                                           nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_rudd_day_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_rudd_day_BRNs <- bam(formula = det_depth ~
                                    s(seasonal_depth, bs = 'ts') +
                                    s(amplitude, bs = 'ts') +
@@ -875,10 +841,8 @@ mdl_rudd_night_simple_BRNs <- bam(formula = det_depth ~
                                             family=gaussian(link="log"), select=TRUE,method="REML",
                                             nthreads = 10, cluster = 10, gc.level = 0)
 
-#Assessing the starting rho value
 rho_start_value <- start_value_rho(mdl_rudd_night_simple_BRNs, plot = TRUE)
 
-#Model with autocorrelation
 mdl_rudd_night_BRNs <- bam(formula = det_depth ~
                                      s(seasonal_depth, bs = 'ts') +
                                      s(amplitude, bs = 'ts') +
@@ -1224,3 +1188,5 @@ right.grob<-textGrob(expression(bold("Day                                   Nigh
 p<-grid.arrange(arrangeGrob(p, left = y.grob, bottom = x.grob, right= right.grob))
 dev.off()
 ```
+
+
