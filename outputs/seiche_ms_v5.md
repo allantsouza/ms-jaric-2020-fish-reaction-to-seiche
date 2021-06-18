@@ -13,6 +13,10 @@
 
 # [Final models table ](#headafinaltable)
 
+# [Alternative model structures](#headaltmodels)
+
+# [Issues and further improvements](#headissuesandimprovements)
+
 # [References](#headreferences)
 
 ---
@@ -892,10 +896,8 @@ mdl_rudd_night_BRNs <- bam(formula = det_depth ~
 
 # <a name="headafinalmodels"></a>Variance components and Repeatability[:page_facing_up:](#headindex)
 
-
+Create separate lists containing all fitted models
 ``` r
-# Create separate lists containing all fitted models
-
 model_fishid <- list(mdl_tench_day_fishid,
                      mdl_tench_night_fishid,
                      mdl_pike_day_fishid,
@@ -981,10 +983,10 @@ adj.BRNs.R <- function(model){
  adj.BRNs.R_upper_ci <-(vars$upper_ci)[8]^2/((vars$upper_ci)[8]^2 + (vars$upper_ci)[9]^2)
     print(c(adj.BRNs.R_lower_ci,adj.BRNs.R, adj.BRNs.R_upper_ci))
 }}
+```
 
-
-# Create separate tables for unadjusted and adjusted R
-
+Create separate tables for unadjusted and adjusted R
+``` r
 table_unadj.R <- lapply(model_fishid, unadj.R)
 df_unadj.R <- as.data.frame(data.table::transpose((table_unadj.R)))
 colnames(df_unadj.R) <- c("lower CI", "unadj.R", "upper CI")
@@ -1222,5 +1224,3 @@ right.grob<-textGrob(expression(bold("Day                                   Nigh
 p<-grid.arrange(arrangeGrob(p, left = y.grob, bottom = x.grob, right= right.grob))
 dev.off()
 ```
-
-
