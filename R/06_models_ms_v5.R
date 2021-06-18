@@ -1,43 +1,5 @@
-# <a name="headindex">Influence of internal seiche dynamics on vertical distribution of fish
-## <a name="headindex">Report of model analysis
----
 
-# [Data](#headdata)
-
-# [Final models ](#headafinalmodels)
-
-[![Image name](/outputs/icons/pike_index_1.png)](#headSpeciesPike)
-[![Image name](/outputs/icons/wels_index_1.png)](#headSpeciesWels)
-[![Image name](/outputs/icons/rudd_index_1.png)](#headSpeciesRudd)
-[![Image name](/outputs/icons/tench_index_1.png)](#headSpeciesTench)
-
-# [Final models table ](#headafinaltable)
-
-# [Alternative model structures](#headaltmodels)
-
-# [Issues and further improvements](#headissuesandimprovements)
-
-# [References](#headreferences)
-
----
-
-# <a name="headdata"></a>Data [:page_facing_up:](#headindex)
-
-Load libraries.
-
-[:books:](https://cran.r-project.org/web/packages/mgcv/index.html)`library(mgcv)`
-[:books:](https://cran.r-project.org/web/packages/itsadug/index.html)`library(itsadug)`
-[:books:](https://cran.r-project.org/web/packages/gratia/index.html)`library(gratia)`
-[:books:](https://cran.r-project.org/web/packages/AICcmodavg/index.html)`library(AICcmodavg)`
-[:books:](https://cran.r-project.org/web/packages/knitr/index.html)`library(knitr)`
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
-[:books:](https://cran.r-project.org/web/packages/visreg/index.html)`library(visreg)`
-[:books:](https://cran.r-project.org/web/packages/ggplot2/index.html)`library(ggplot2)`
-[:books:](https://cran.r-project.org/web/packages/fitdistrplus/index.html)`library(fitdistrplus)`
-[:books:](https://cran.r-project.org/web/packages/logspline/index.html)`library(logspline)`
-
-Load the whole dataset.
+Load data
 ``` r
 fish_raw <- read_csv(file = "data/raw/fishIDs.csv", col_types = "ccdc") %>%
   mutate(data_path = here("data/products/fish",paste0(tag_sn, ".csv")))
