@@ -1001,7 +1001,7 @@ rownames(All_R) <- names
 
 # <a name="headaplots"></a>Plotting reaction norms to seiche and individual variability [:page_facing_up:](#headindex)
 
-**Figure X**
+:chart: **Figure X**
 ``` r
 tiff("Fig.X.tiff", width = 465, height = 265, units='mm', res = 300)
 
@@ -1039,8 +1039,10 @@ mtext("Depth (m)",side=2,line=2,outer=TRUE,cex=1.8,las=0)
 
 dev.off()
 ```
+![Seiche_models](/outputs/plots/Fig.X.png "Seiche_models")
 
-**Figure Y**
+
+:chart: **Figure Y**
 ``` r
 # Create a common dataset by species-diel_period
 
@@ -1143,8 +1145,9 @@ tiff("Fig.Y.tiff", width = 465, height = 265, units='mm', res = 300)
 p<-grid.arrange(arrangeGrob(P, left = y.grob, bottom = x.grob))
 dev.off()
 ```
+![Seiche_models](/outputs/plots/Fig.Y.png "Seiche_models")
 
-**Figure Z**
+:chart: **Figure Z**
 ``` r
 
 td_Viz <- getViz(mdl_tench_day_BRNs)
@@ -1208,9 +1211,7 @@ right.grob<-textGrob(expression(bold("Day                                   Nigh
 p<-grid.arrange(arrangeGrob(p, left = y.grob, bottom = x.grob, right= right.grob))
 dev.off()
 ```
-
-
-
+![Seiche_models](/outputs/plots/Fig.Z.png "Seiche_models")
 
 
 
