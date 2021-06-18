@@ -609,19 +609,42 @@ mdl_rudd_night_fixed <- bam(formula = det_depth ~
 
 These are final models including fixed effects of the covariates + random intercepts and random slopes for each covariate.
 
-_(Xji, bs=’ts’)_: average main effects
+`(Xji, bs=’ts’)`: average main effects
 
-_s(fishID, bs=’re’)_: fish-specific means (random intercepts)
+`s(fishID, bs=’re’)`: fish-specific means (random intercepts)
 
-_(Xji, fishID, bs=’re’)_: fish-specific effects (random slopes) of the three covariates
+`(Xji, fishID, bs=’re’)`: fish-specific effects (random slopes) of the three covariates
 
-_m=1_: specifies a squared first derivative penalty term that serves to correct uncertainty from the main-effects smoothers, thus reducing concurvity between the two terms
+`m=1`: specifies a squared first derivative penalty term that serves to correct uncertainty from the main-effects smoothers, thus reducing concurvity between the two terms
 
-_bs=’ts’_: shrinkage smoothers based on thin plate regression spline (t.p.r.s.) implements the smoothing penalty βTSi β through the identity penalty matrix S (smooth coefficients are shrunk to 0
+`bs=’ts’`: shrinkage smoothers based on thin plate regression spline (t.p.r.s.) implements the smoothing penalty βTSi β through the identity penalty matrix S (smooth coefficients are shrunk to 0
 
-_AR.start = startindex_: starting value of an autocorrelation term AR(1)
+`AR.start = startindex`: starting value of an autocorrelation term AR(1)
 
-_rho = rho_start_value_: autocorrelation coefficient ρ computed using the _start_value_rho()_ function in the R package _itsadug_
+`rho = rho_start_value`: autocorrelation coefficient ρ computed using the _start_value_rho()_ function in the R package _itsadug_
+
+The global model formula can be expressed as follows:
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}=&space;\beta_{0}&space;&plus;&space;f_{1}\left&space;(&space;X_{1i}&space;\right&space;)&space;&plus;&space;f_{2}\left&space;(&space;X_{1i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{3}\left&space;(&space;X_{2i}&space;\right&space;)&space;&plus;&space;f_{4}\left&space;(&space;X_{2i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{5}\left&space;(&space;X_{3i}&space;\right&space;)&space;&plus;&space;f_{6}\left&space;(&space;X_{3i}&space;\right&space;)_{id_{i}}&space;&plus;&space;f_{7}\left&space;(&space;t_{i}&space;\right&space;)&space;&plus;&space;f_{8}\left&space;(&space;t_{i}&space;\right&space;)_{id_{i}}&space;&plus;&space;\varepsilon&space;_{i}" title="\boldsymbol{E\left ( y_{i} \right )}= \beta_{0} + f_{1}\left ( X_{1i} \right ) + f_{2}\left ( X_{1i} \right )_{id_{i}} + f_{3}\left ( X_{2i} \right ) + f_{4}\left ( X_{2i} \right )_{id_{i}} + f_{5}\left ( X_{3i} \right ) + f_{6}\left ( X_{3i} \right )_{id_{i}} + f_{7}\left ( t_{i} \right ) + f_{8}\left ( t_{i} \right )_{id_{i}} + \varepsilon _{i}" /></a>
+
+where:
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\boldsymbol{E\left&space;(&space;y_{i}&space;\right&space;)}" title="\boldsymbol{E\left ( y_{i} \right )}" /></a>
+is the expected value of depth for a fish <a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a>
+at time <a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a>
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\beta_{0}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\beta_{0}" title="\beta_{0}" /></a> is the is the average value of the response (model intercept).
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=X_{1i},&space;X_{2i},&space;X_{3i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?X_{1i},&space;X_{2i},&space;X_{3i}" title="X_{1i}, X_{2i}, X_{3i}" /></a> are main-effects of the continuous covariates (i.e., seasonal depth, mean gradient and amplitude).
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=t_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?t_{i}" title="t_{i}" /></a> is the average time effects trend.
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=f_{1-8}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?f_{1-8}" title="f_{1-8}" /></a> are smoothing functions of the covariates <a href="https://www.codecogs.com/eqnedit.php?latex=X_{1i},&space;X_{2i},&space;X_{3i},&space;t" target="_blank"><img src="https://latex.codecogs.com/svg.latex?X_{1i},&space;X_{2i},&space;X_{3i},&space;t" title="X_{1i}, X_{2i}, X_{3i}, t" /></a> for a fish <a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a>.
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=_{id_{i}}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?_{id_{i}}" title="_{id_{i}}" /></a> is the _Fish ID_ group-level factor.
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=\varepsilon&space;_{i}" target="_blank"><img src="https://latex.codecogs.com/svg.latex?\varepsilon&space;_{i}" title="\varepsilon _{i}" /></a> is the random error term including the random smooths and an AR(1) autoregressive residual term.
+
 
 ``` r
 mdl_tench_day_simple_BRNs <- bam(formula = det_depth ~
