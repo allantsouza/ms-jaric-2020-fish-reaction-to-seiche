@@ -58,6 +58,7 @@ ggplot(speeds_mean_abs, aes(x=species, y=speed, fill=species)) +
           theme(strip.background =element_rect(fill="white")) +
           theme(strip.text = element_text(colour = 'black')) + ylab("Vertical speed (m/s)")
 ```
+![Seiche_rev_FB](/outputs/plots/violin_plot_vertical_speeds.png "Vertical speeds")
 
 ## Seiche speeds
 
@@ -118,6 +119,8 @@ ggplot(speeds_seiche, aes(x=date4, y=speed, color=up_down_seiche, group=up_down_
               theme(strip.background =element_rect(fill="white")) +
               theme(strip.text = element_text(colour = 'black'))
 ```
+![Seiche_rev_FB](/outputs/plots/speeds_seiche_date.png "Seiche speeds")
+
 Upward and downward seiche velocities as a function of the amplitude of the thermocline
 ``` r
 ggplot(data = speeds_seiche) +
@@ -144,3 +147,4 @@ ggplot(data = speeds_seiche) +
      theme(strip.background =element_rect(fill="white")) +
      theme(strip.text = element_text(colour = 'black'))
 ```
+![Seiche_rev_FB](/outputs/plots/speeds_seiche_amplitude_1.png "Seiche speeds")
