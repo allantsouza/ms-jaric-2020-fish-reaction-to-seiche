@@ -1,28 +1,28 @@
 
-# calculate fish speeds
+Calculate fish speeds
 ``` r
 speeds<-detections%>%group_by(fishid)%>%mutate(diff=det_depth-lag(det_depth,default=first(det_depth)))
 speeds <- mutate(speeds, speed = diff/60)
 ```
 
-# drop roach level
+Drop roach level
 ``` r
 speeds<- droplevels(speeds[!speeds$species == 'roach',])
 speeds$Species<-as.factor(speeds$species)
 ```
-# group speed values by fishid, species and diel period (otherwise there are too many points)
+Group speed values by fishid, species and diel period (otherwise there are too many points)
 ``` r
 speeds_mean <- speeds %>%
                       group_by(fishid,species,diel_period) %>%
                       summarise_at(vars(speed), mean)
 ```
-# convert speeds to absolute values (negative speeds are reversed changes in depth - going up)
+Convert speeds to absolute values (negative speeds are reversed changes in depth - going up)
 ``` r
 speeds_mean_abs <- speeds_mean %>%
                 group_by(fishid,species,diel_period) %>%
                 summarise_at(vars(speed), abs)
 ```
-# violin plot of vertical speeds
+Violin plot of vertical speeds
 ``` r
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
                "#E956B4","#B4E956","#22485D","#000000","#DDF0FA","#485D22","#742B5A","#E9E356","#EF223E",
@@ -56,8 +56,7 @@ ggplot(speeds_mean_abs, aes(x=species, y=speed, fill=species)) +
           theme(strip.background =element_rect(fill="white")) +
           theme(strip.text = element_text(colour = 'black')) + ylab("Vertical speed (m/s)")
 ```
-
-# calculate seiche speeds
+Calculate seiche speeds
 ``` r
 speeds_seiche = detections %>%
                              filter(is_valid_seiche == TRUE) %>%
@@ -69,12 +68,12 @@ speeds_seiche = detections %>%
 speeds_seiche<-speeds_seiche%>%group_by(fishid)%>%mutate(diff_seiche=amplitude-lag(amplitude,default=first(amplitude)))
 speeds_seiche <- mutate(speeds_seiche, speed = diff_seiche/60)
 ```
-# drop roach level
+Drop roach level
 ``` r
 speeds_seiche<- droplevels(speeds_seiche[!speeds_seiche$species == 'roach',])
 speeds_seiche$species<-as.factor(speeds_seiche$species)
 ```
-# separate up and down seiche
+Separate up and down seiche
 ``` r
 speeds_seiche$up_down_seiche <- sapply(speeds_seiche$amplitude, function(amplitude){
                                if(amplitude < 0){"down"
@@ -86,7 +85,7 @@ speeds_seiche<-as.data.frame(speeds_seiche)
 speeds_seiche$up_down_seiche<-as.factor(speeds_seiche$up_down_seiche)
 speeds_seiche$speed <- abs(speeds_seiche$speed)
 ```
-# seiche speed by date (gam)
+Seiche speed by date (gam)
 ``` r
 ggplot(speeds_seiche, aes(x=date4, y=speed, color=up_down_seiche, group=up_down_seiche)) +
   stat_smooth(size=1.5, method = "gam", level = 0.95, fullrange = TRUE, se = TRUE) +
@@ -113,7 +112,7 @@ ggplot(speeds_seiche, aes(x=date4, y=speed, color=up_down_seiche, group=up_down_
               theme(strip.background =element_rect(fill="white")) +
               theme(strip.text = element_text(colour = 'black'))
 ```
-# seiche speed by continous amplitude (up-down seiche)
+Seiche speed by continous amplitude (up-down seiche)
 ``` r
 ggplot(data = speeds_seiche) +
   geom_point(mapping = aes(x = amplitude, y = speed, colour = up_down_seiche))  +
