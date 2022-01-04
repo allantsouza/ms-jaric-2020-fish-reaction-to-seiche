@@ -24,7 +24,7 @@ speeds_mean_abs <- speeds_mean %>%
                 group_by(fishid,species,diel_period) %>%
                 summarise_at(vars(speed), abs)
 ```
-Violin plot of vertical speeds
+**Violin plot of vertical speeds**
 ``` r
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7",
                "#E956B4","#B4E956","#22485D","#000000","#DDF0FA","#485D22","#742B5A","#E9E356","#EF223E",
@@ -92,7 +92,7 @@ speeds_seiche$up_down_seiche<-as.factor(speeds_seiche$up_down_seiche)
 speeds_seiche$speed <- abs(speeds_seiche$speed)
 ```
 
-Upward and downward seiche velocities over time (gam)
+**Upward and downward seiche velocities over time (gam)**
 ``` r
 ggplot(speeds_seiche, aes(x=date4, y=speed, color=up_down_seiche, group=up_down_seiche)) +
   stat_smooth(size=1.5, method = "gam", level = 0.95, fullrange = TRUE, se = TRUE) +
@@ -121,7 +121,7 @@ ggplot(speeds_seiche, aes(x=date4, y=speed, color=up_down_seiche, group=up_down_
 ```
 ![Seiche_rev_FB](/outputs/plots/speeds_seiche_date.png "Seiche speeds")
 
-Upward and downward seiche velocities as a function of the amplitude of the thermocline
+**Upward and downward seiche velocities as a function of the amplitude of the thermocline**
 ``` r
 ggplot(data = speeds_seiche) +
   geom_point(mapping = aes(x = amplitude, y = speed, colour = up_down_seiche))  +
