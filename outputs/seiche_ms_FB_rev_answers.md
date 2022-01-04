@@ -1,3 +1,5 @@
+## Fish vertical velocities by time of day
+We use the data from real detections to calculate the difference in depth between two successive detections (every minute). The absolute values of the velocity are therefore given.
 
 Calculate fish speeds
 ``` r
@@ -56,6 +58,9 @@ ggplot(speeds_mean_abs, aes(x=species, y=speed, fill=species)) +
           theme(strip.background =element_rect(fill="white")) +
           theme(strip.text = element_text(colour = 'black')) + ylab("Vertical speed (m/s)")
 ```
+
+## Seiche speeds
+
 Calculate seiche speeds
 ``` r
 speeds_seiche = detections %>%
@@ -85,7 +90,8 @@ speeds_seiche<-as.data.frame(speeds_seiche)
 speeds_seiche$up_down_seiche<-as.factor(speeds_seiche$up_down_seiche)
 speeds_seiche$speed <- abs(speeds_seiche$speed)
 ```
-Seiche speed by date (gam)
+
+Upward and downward seiche velocities over time (gam)
 ``` r
 ggplot(speeds_seiche, aes(x=date4, y=speed, color=up_down_seiche, group=up_down_seiche)) +
   stat_smooth(size=1.5, method = "gam", level = 0.95, fullrange = TRUE, se = TRUE) +
@@ -112,7 +118,7 @@ ggplot(speeds_seiche, aes(x=date4, y=speed, color=up_down_seiche, group=up_down_
               theme(strip.background =element_rect(fill="white")) +
               theme(strip.text = element_text(colour = 'black'))
 ```
-Seiche speed by continous amplitude (up-down seiche)
+Upward and downward seiche velocities as a function of the amplitude of the thermocline
 ``` r
 ggplot(data = speeds_seiche) +
   geom_point(mapping = aes(x = amplitude, y = speed, colour = up_down_seiche))  +
